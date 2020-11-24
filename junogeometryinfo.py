@@ -4,6 +4,11 @@ import math
 import spiceypy.utils.support_types as stypes
 import spiceypy
 
+###
+# This script takes a time in UTC as input from the user
+# It outputs geometry information for Juno WRT Io at that time
+###
+
 # initialize variables
 
 metakr = '/Applications/Cosmographia/JUNO/kernels/juno_latest.tm'

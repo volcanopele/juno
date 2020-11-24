@@ -4,6 +4,14 @@ import math
 import spiceypy.utils.support_types as stypes
 import spiceypy
 
+###
+# This script takes two times as input from the user
+# it then looks for Juno's closest approach to Io during that time period
+# it will then search for times when Io crosses the center of the JIRAM FOV
+# the script outputs a text file 'test.txt' with time and geometry information
+# for both the closest approach and each time Io crosses the center of JIRAM FOV
+###
+
 # initialize variables
 
 metakr = '/Applications/Cosmographia/JUNO/kernels/juno_latest.tm'
@@ -168,8 +176,7 @@ else:
 	# Display the visibility time periods.
 	#
 	print( 'Visibility times of {0:s} '
-		   'as seen from {1:s}:\n'.format(
-			target, jrmfrm ), file = sourceFile )
+		   'as seen from {1:s}:\n'.format( target, jrmfrm ), file = sourceFile )
 	for i in range(winsiz):
 	     [intbeg, intend] = spiceypy.wnfetd( obswin, i )
 	     timstr = spiceypy.timout( intbeg, xlsxmt )
