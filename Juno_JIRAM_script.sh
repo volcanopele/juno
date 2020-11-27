@@ -23,7 +23,7 @@ RES=$(echo "${RES}/20" | bc -l)
 # use TARGET_CENTER_DISTANCE
 DISTANCE="205185.1777"
 
-mkdir ~/Dropbox/Io/Juno/$PERIJOVE/$IMAGE_NAME
+mkdir $DIRECTORY
 cd $DIRECTORY
 maptemplate map=$IMAGE_NAME.map targopt=user targetname=Io clat=$CLAT clon=$CLON dist=$DISTANCE londir=POSITIVEWEST projection=POINTPERSPECTIVE resopt=MPP resolution=$RES rngopt=user minlat=-90 maxlat=90 minlon=0 maxlon=360
 map2map from=~/Dropbox/Io/Io_GalileoSSI-Voyager_Global_Mosaic_1km.cub to=$IMAGE_NAME.map.cub map=$IMAGE_NAME.map pixres=map defaultrange=map

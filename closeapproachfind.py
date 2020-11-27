@@ -161,13 +161,18 @@ print( ' ', file = sourceFile )
 
 obswin = stypes.SPICEDOUBLE_CELL( maxwin )
 
+# check for when Io crosses Juno's equator
+# Odd way to think of it, but due to Juno's rotating frame, easier to check for when Io
+# is crossing the X-Y plane of Juno.
+
 spiceypy.gfposc( scname, 'JUNO_HGA', abcorr, target, 'RECTANGULAR', 'Z', '=', 90.0, 0.0,
 				 stepsz, maxivl, cnfine, obswin )
 
-# spiceypy.gftfov( jrmfrm, target, 'POINT', tarfrm,
-# 				 abcorr, scname, stepsz, cnfine, obswin )
-
+# find the number of observation windows
 winsiz = spiceypy.wncard( obswin )
+
+# if there are no windows, print that to the text file
+# if there are windows, print time and geometry information to the text file
 
 if winsiz == 0:
 	print( 'No events were found.', file = sourceFile )
@@ -178,10 +183,16 @@ else:
 	print( 'Visibility times of {0:s} '
 		   'as seen from {1:s}:\n'.format( target, jrmfrm ), file = sourceFile )
 	for i in range(winsiz):
+	     # get the start and end of each observation "window"
 	     [intbeg, intend] = spiceypy.wnfetd( obswin, i )
+	     
+	     # only the first value is needed, format it for adding to an excel file
 	     timstr = spiceypy.timout( intbeg, xlsxmt )
+	     
+	     # print the observation time to a text file
 	     print( 'Observation center time:          '
               '  {:s}'.format( timstr ), file = sourceFile  )
+         
 	     # calculate distance to center of Io and JunoCAM and JIRAM resolution
 	     [state, ltime] = spiceypy.spkezr( target, intbeg, tarfrm, abcorr, scname )
 	     dist = spiceypy.vnorm( state )
@@ -201,6 +212,8 @@ else:
               lon = math.fabs(lon)
 	     else:
               lon = 360.0 - lon
+              
+         # print geometry information to a text file
 	     
 	     print( '     ALT = {:16.3f}'.format(spiceypy.vnorm(srfvec)), file = sourceFile )
 	     print( '     LAT = {:16.3f}'.format(lat * spiceypy.dpr() ), file = sourceFile )
