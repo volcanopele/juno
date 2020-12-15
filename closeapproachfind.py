@@ -193,11 +193,7 @@ else:
 	     print( 'Observation center time:          '
               '  {:s}'.format( timstr ), file = sourceFile  )
          
-	     # calculate distance to center of Io and JunoCAM and JIRAM resolution
-	     [state, ltime] = spiceypy.spkezr( target, intbeg, tarfrm, abcorr, scname )
-	     dist = spiceypy.vnorm( state )
-	     jiramres = dist * 0.000237767
-	     jncamres = dist * 0.00061425
+
 	     
 	     # calculate sub-S/C point and altitude
 	     [spoint, trgepc, srfvec] = spiceypy.subpnt( method, target, intbeg,
@@ -205,6 +201,13 @@ else:
 	     [radius, lon, lat] = spiceypy.reclat( spoint )
 	     [trgepc, srfvec, phase, solar, emissn, visibl, lit] = spiceypy.illumf(
               method2, target, 'SUN', intbeg, tarfrm, abcorr, scname, spoint )
+              
+         # calculate distance to center of Io, altitude, and JunoCAM and JIRAM resolution
+	     [state, ltime] = spiceypy.spkezr( target, intbeg, tarfrm, abcorr, scname )
+	     dist = spiceypy.vnorm( state )
+	     alt = spiceypy.vnorm(srfvec)
+	     jiramres = alt * 0.000237767
+	     jncamres = alt * 0.0006727
 	     
 	     # convert longitude domain from -180-180 E longitude to 0-360 W longitude
 	     lon = lon * spiceypy.dpr()
@@ -221,6 +224,7 @@ else:
 	     print( '     PHA = {:16.3f}'.format( phase*spiceypy.dpr() ), file = sourceFile )   
 	     print( '     JIRAM res = {:10.3f}'.format( jiramres ), file = sourceFile )
 	     print( '     JunoCAM res = {:8.3f}'.format( jncamres ), file = sourceFile )
+	     print( '{:s}'.format(timstr), '{:0.4f}'.format(lat * spiceypy.dpr()), '{:0.4f}'.format(lon), sep=',', file = sourceFile)
 	     print( ' ', file = sourceFile )
 
 spiceypy.unload( metakr )

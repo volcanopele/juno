@@ -65,10 +65,14 @@ if lon <= 0.0:
 	lon = math.fabs(lon)
 else:
 	lon = 360.0 - lon
+	
+              
+# compute altitude
+alt = spiceypy.vnorm( srfvec )
 
 # camera resolution
-jncamres = dist * 0.61425
-jiramres = dist * 0.237767
+jncamres = alt * 0.6727
+jiramres = alt * 0.237767
 
 [trgepc, srfvec, phase, solar, emissn, visibl, lit] = spiceypy.illumf(
               method2, target, 'SUN', et, tarfrm, abcorr, scname, spoint )
@@ -83,7 +87,7 @@ else:
 	lon_slr = 360.0 - lon_slr
 	
 print( 'Observation center time: {:s}'.format( timstr ), file = sourceFile )
-print( '     ALT = {:16.3f}'.format(spiceypy.vnorm(srfvec)), file = sourceFile )
+print( '     ALT = {:16.3f}'.format( alt ), file = sourceFile )
 print( '     DIST = {:16.3f}'.format( dist ), file = sourceFile )
 print( '     LAT = {:16.3f}'.format(lat * spiceypy.dpr() ), file = sourceFile )
 print( '     LON = {:16.3f}'.format( lon ), file = sourceFile )
