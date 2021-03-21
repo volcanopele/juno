@@ -7,11 +7,12 @@ import spiceypy
 ###
 # This script takes a time in UTC as input from the user
 # It outputs geometry information for Juno WRT Io at that time
+# Outputting test.txt
 ###
 
 # initialize variables
 
-metakr = '/Applications/Cosmographia/JUNO/kernels/juno_latest.tm'
+metakr = '/Users/perry/Dropbox/Io/Juno/kernels/juno_latest.tm'
 sclkid = -61
 scname = 'JUNO'
 target = 'IO'
@@ -86,6 +87,8 @@ if lon_slr <= 0.0:
 else:
 	lon_slr = 360.0 - lon_slr
 	
+tabchar = "\t"
+
 print( 'Observation center time: {:s}'.format( timstr ), file = sourceFile )
 print( '     ALT = {:16.3f}'.format( alt ), file = sourceFile )
 print( '     DIST = {:16.3f}'.format( dist ), file = sourceFile )
@@ -97,5 +100,7 @@ print( '     PHA = {:16.3f}'.format( phase*spiceypy.dpr() ), file = sourceFile )
 print( '     JIRAM res = {:10.3f}'.format( jiramres ), file = sourceFile )
 print( '     JunoCAM res = {:8.3f}'.format( jncamres ), file = sourceFile )
 print( ' ', file = sourceFile )
+print(timstr, tabchar, tabchar, tabchar, '{:0.3f}'.format(lat * spiceypy.dpr()), tabchar, '{:0.3f}'.format(lon), tabchar, '{:0.3f}'.format(dist), tabchar, '{:0.3f}'.format(alt), tabchar, '{:0.3f}'.format(phase*spiceypy.dpr()), tabchar, '{:0.3f}'.format(jiramres), tabchar, '{:0.3f}'.format(jncamres), file = sourceFile)
+
 
 spiceypy.unload( metakr )

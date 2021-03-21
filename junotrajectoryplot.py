@@ -7,7 +7,9 @@ from mpl_toolkits.mplot3d import Axes3D
 import spiceypy
 import spiceypy.utils.support_types as stypes
 
-metakr = '/Applications/Cosmographia/JUNO/kernels/juno_latest.tm'
+# this script plots the orbits of Juno between two dates
+
+metakr = '/Users/perry/Dropbox/Io/Juno/kernels/juno_latest.tm'
 sclkid = -61
 scname = 'JUNO'
 target = 'IO'

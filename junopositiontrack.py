@@ -17,7 +17,7 @@ import numpy as np
 
 # initialize variables
 
-metakr = '/Applications/Cosmographia/JUNO/kernels/juno_latest.tm'
+metakr = '/Users/perry/Dropbox/Io/Juno/kernels/juno_latest.tm'
 sclkid = -61
 scname = 'JUNO'
 target = 'IO'
@@ -39,10 +39,10 @@ step = 4800
 spiceypy.furnsh( metakr )
 
 encounters = []
-encounters.append(('PJ55', '10/15/2023 06:47:29.962'))
-encounters.append(('PJ57', '12/30/2023 08:36:24.233'))
-encounters.append(('PJ58', '02/03/2024 17:49:07.575'))
-encounters.append(('PJ60', '04/09/2024 05:00:54.658'))
+encounters.append(('PJ55', '10/15/2023 06:47:26.842'))
+encounters.append(('PJ57', '12/30/2023 08:36:10.874'))
+encounters.append(('PJ58', '02/03/2024 17:48:50.770'))
+encounters.append(('PJ60', '04/09/2024 05:00:37.158'))
 
 latplot = []
 lonplot = []

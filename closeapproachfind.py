@@ -14,7 +14,7 @@ import spiceypy
 
 # initialize variables
 
-metakr = '/Applications/Cosmographia/JUNO/kernels/juno_latest.tm'
+metakr = '/Users/perry/Dropbox/Io/Juno/kernels/juno_latest.tm'
 sclkid = -61
 scname = 'JUNO'
 target = 'IO'
@@ -98,6 +98,8 @@ catimstr = spiceypy.timout( catim[0], xlsxmt )
 # obtain cartesian coordinates for sub-spacecraft point at the time of closest approach
 
 [spoint, trgepc, srfvec] = spiceypy.subpnt( method, target, catim[0], tarfrm, abcorr, scname )
+
+alt = spiceypy.vnorm(srfvec)
 						
 # convert cartesian coordinates of lat/lon
 
@@ -105,6 +107,8 @@ catimstr = spiceypy.timout( catim[0], xlsxmt )
 [trgepc, srfvec, phase, solar, emissn, visibl, lit] = spiceypy.illumf(
 					method2, target, 'SUN', catim[0], tarfrm, abcorr,
 					scname, spoint )
+					
+phase = phase * spiceypy.dpr()
 
 # convert longitude domain from -180-180 E longitude to 0-360 W longitude
 lon = lon * spiceypy.dpr()
@@ -112,6 +116,8 @@ if lon <= 0.0:
 	lon = math.fabs(lon)
 else:
 	lon = 360.0 - lon
+	
+lat = lat * spiceypy.dpr()
 	
 # calculate velocity of Juno WRT Io at C/A
 [state, ltime] = spiceypy.spkezr( target, catim[0], tarfrm, abcorr, scname )
@@ -140,19 +146,39 @@ if sep <= 90.0:
 else:
 	sep = sep - 90
 
-	
+
+# calculating Jupiter System III position
+[jpoint, trgepc, srfvec2] = spiceypy.subpnt( method, "599", catim[0], "JUNO_MAG_VIP4", abcorr, "501" )
+[radius, jlon, jlat] = spiceypy.reclat( jpoint )
+[jpoint, trgepc, srfvec2] = spiceypy.subpnt( method, "599", catim[0], "IAU_JUPITER", abcorr, "501" )
+[radius, jlon, jlat2] = spiceypy.reclat( jpoint )
+
+jlon = jlon * spiceypy.dpr()
+if jlon <= 0.0:
+	jlon = math.fabs(jlon)
+else:
+	jlon = 360.0 - jlon
+
+jlon = 360.0 - jlon
+
+jlat = jlat * spiceypy.dpr()
+tabchar = "\t"
+
 # print information about c/a to file: C/A time, distance, sub-spacecraft lat/lon, 
 # and phase angle
 
 print( '{0:s}\'s distance to {1:s} for this time period is: '.format( scname,
 					 target ), file = sourceFile )
 print( '   {:s}\n'.format( catimstr ), file = sourceFile )
-print( '     ALT = {:16.3f}'.format(spiceypy.vnorm(srfvec)), file = sourceFile )
-print( '     LAT = {:16.3f}'.format(lat * spiceypy.dpr() ), file = sourceFile )
+print( '     ALT = {:16.3f}'.format(alt), file = sourceFile )
+print( '     LAT = {:16.3f}'.format(lat), file = sourceFile )
 print( '     LON = {:16.3f}'.format( lon ), file = sourceFile    )			   
 print( '     VEL = {:16.3f}'.format( velocity ), file = sourceFile    )	
-print( '     PHA = {:16.3f}'.format( phase*spiceypy.dpr() ), file = sourceFile )
+print( '     PHA = {:16.3f}'.format( phase ), file = sourceFile )
+print( '     JLAT = {:15.3f}'.format(jlat ), file = sourceFile )
+print( '     JLON = {:15.3f}'.format(jlon), file = sourceFile )
 print( '     OBA = {:16.3f}'.format( sep ), file = sourceFile )
+print(catimstr, tabchar, '{:0.3f}'.format(alt), tabchar, '{:0.3f}'.format(lat), tabchar, '{:0.3f}'.format(lon), tabchar, '{:0.3f}'.format(velocity), tabchar, '{:0.3f}'.format(phase), tabchar, '{:0.3f}'.format(jlat), tabchar, '{:0.3f}'.format(jlon), tabchar, tabchar, '{:0.3f}'.format(sep), file = sourceFile)
 print( ' ', file = sourceFile )
 
 
@@ -201,7 +227,9 @@ else:
 	     [radius, lon, lat] = spiceypy.reclat( spoint )
 	     [trgepc, srfvec, phase, solar, emissn, visibl, lit] = spiceypy.illumf(
               method2, target, 'SUN', intbeg, tarfrm, abcorr, scname, spoint )
-              
+         
+	     phase = phase * spiceypy.dpr()
+         
          # calculate distance to center of Io, altitude, and JunoCAM and JIRAM resolution
 	     [state, ltime] = spiceypy.spkezr( target, intbeg, tarfrm, abcorr, scname )
 	     dist = spiceypy.vnorm( state )
@@ -215,16 +243,17 @@ else:
               lon = math.fabs(lon)
 	     else:
               lon = 360.0 - lon
+	     lat = lat * spiceypy.dpr()
               
          # print geometry information to a text file
 	     
-	     print( '     ALT = {:16.3f}'.format(spiceypy.vnorm(srfvec)), file = sourceFile )
-	     print( '     LAT = {:16.3f}'.format(lat * spiceypy.dpr() ), file = sourceFile )
+	     print( '     ALT = {:16.3f}'.format(alt), file = sourceFile )
+	     print( '     LAT = {:16.3f}'.format(lat), file = sourceFile )
 	     print( '     LON = {:16.3f}'.format( lon ), file = sourceFile    )			   
-	     print( '     PHA = {:16.3f}'.format( phase*spiceypy.dpr() ), file = sourceFile )   
+	     print( '     PHA = {:16.3f}'.format( phase), file = sourceFile )   
 	     print( '     JIRAM res = {:10.3f}'.format( jiramres ), file = sourceFile )
 	     print( '     JunoCAM res = {:8.3f}'.format( jncamres ), file = sourceFile )
-	     print( '{:s}'.format(timstr), '{:0.4f}'.format(lat * spiceypy.dpr()), '{:0.4f}'.format(lon), sep=',', file = sourceFile)
+	     print(timstr, tabchar, '{:0.3f}'.format(alt), tabchar, '{:0.3f}'.format(lat), tabchar, '{:0.3f}'.format(lon), tabchar, '{:0.3f}'.format(phase), tabchar, '{:0.3f}'.format(jiramres), tabchar, '{:0.3f}'.format(jncamres), file = sourceFile)
 	     print( ' ', file = sourceFile )
 
 spiceypy.unload( metakr )
