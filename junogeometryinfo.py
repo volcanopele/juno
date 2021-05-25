@@ -15,8 +15,8 @@ import spiceypy
 metakr = '/Users/perry/Dropbox/Io/Juno/kernels/juno_latest.tm'
 sclkid = -61
 scname = 'JUNO'
-target = 'IO'
-tarfrm = 'IAU_IO'
+target = 'JUPITER'
+tarfrm = 'IAU_JUPITER'
 abcorr = 'LT+S'
 jrmfrm = 'JUNO_JIRAM_I'
 jirmid = -61410
@@ -75,7 +75,7 @@ alt = spiceypy.vnorm( srfvec )
 jncamres = alt * 0.6727
 jiramres = alt * 0.237767
 
-[trgepc, srfvec, phase, solar, emissn, visibl, lit] = spiceypy.illumf(
+[trgepc, srfvec, phase, incdnc, emissn, visibl, lit] = spiceypy.illumf(
               method2, target, 'SUN', et, tarfrm, abcorr, scname, spoint )
 
 # calculating subsolar point

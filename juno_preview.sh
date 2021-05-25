@@ -1,6 +1,10 @@
 #!/bin/bash
 # conda activate isis3
 
+# this script generates preview images of Io from Juno
+# requires editing before running
+# use junogeometryinfo.py to get many of the numbers needed for this script
+
 
 # perijove is the orbit number
 # IMAGE_NAME is the central image of the summed image

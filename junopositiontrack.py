@@ -35,6 +35,7 @@ method = 'Intercept/Ellipsoid'
 method2 = 'ELLIPSOID'
 stepsz = 1.0
 step = 4800
+iobasemap = 'Io_GalileoSSI-Voyager_Global_Mosaic_ClrMerge_2km_180W.jpg'
 
 spiceypy.furnsh( metakr )
 
@@ -81,7 +82,7 @@ for encounter in encounters:
 		# calculate sub-S/C point and altitude
 		[spoint, trgepc, srfvec] = spiceypy.subpnt( method, target, time, tarfrm, abcorr, scname )
 		[radius, lon, lat] = spiceypy.reclat( spoint )
-		[trgepc, srfvec, phase, solar, emissn, visibl, lit] = spiceypy.illumf(method2, target, 'SUN', time, tarfrm, abcorr, scname, spoint )
+		[trgepc, srfvec, phase, incdnc, emissn, visibl, lit] = spiceypy.illumf(method2, target, 'SUN', time, tarfrm, abcorr, scname, spoint )
 	
 		# calculate distance to center of Io, altitude, and JunoCAM and JIRAM resolution
 		[state, ltime] = spiceypy.spkezr( target, time, tarfrm, abcorr, scname )
@@ -128,7 +129,7 @@ for encounter in encounters:
 	
 	[spoint, trgepc, srfvec] = spiceypy.subpnt( method, target, et, tarfrm, abcorr, scname )
 	[radius, lon, lat] = spiceypy.reclat( spoint )
-	[trgepc, srfvec, phase, solar, emissn, visibl, lit] = spiceypy.illumf(method2, target, 'SUN', et, tarfrm, abcorr, scname, spoint )
+	[trgepc, srfvec, phase, incdnc, emissn, visibl, lit] = spiceypy.illumf(method2, target, 'SUN', et, tarfrm, abcorr, scname, spoint )
 	alt = spiceypy.vnorm(srfvec)
 	lon = lon * spiceypy.dpr()
 	if lon <= 0.0:
@@ -151,7 +152,7 @@ for encounter in encounters:
 
 # creates graph of the ground plots for all encounters
 # load map as background image
-img = plt.imread("Io_GalileoSSI-Voyager_Global_Mosaic_ClrMerge_2km_180W.jpg")
+img = plt.imread(iobasemap)
 
 # initialize plot
 fig, ax = plt.subplots()
