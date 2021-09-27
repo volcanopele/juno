@@ -15,8 +15,8 @@ import spiceypy
 metakr = '/Users/perry/Dropbox/Io/Juno/kernels/juno_latest.tm'
 sclkid = -61
 scname = 'JUNO'
-target = 'GANYMEDE'
-tarfrm = 'IAU_GANYMEDE'
+target = 'IO'
+tarfrm = 'IAU_IO'
 abcorr = 'LT+S'
 jrmfrm = 'JUNO_JIRAM_I'
 jirmid = -61410
