@@ -39,10 +39,10 @@ adjust = 0.0
 spiceypy.furnsh( metakr )
 
 sourceFile = open('test.txt', 'w')
-utcstarttime = input( 'Input UTC Start Time: ' )
-utcendtime = input( 'Input UTC End Time: ' )
-etstart = spiceypy.str2et( utcstarttime )
-etend = spiceypy.str2et( utcendtime )
+utcstime = input( 'Input UTC Center Time: ' )
+etcenter = spiceypy.str2et( utcstime )
+etstart = etcenter - 28800
+etend = etcenter + 28800
 
 
 method = 'Intercept/Ellipsoid'
