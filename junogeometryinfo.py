@@ -89,6 +89,9 @@ else:
 	
 tabchar = "\t"
 
+# start of calculation of north clock angle
+[jishape, jiframe, jibsight, jin, jivbounds] = spiceypy.getfov(jirmid, 25, 20, 4)
+
 print( 'Observation center time: {:s}'.format( timstr ), file = sourceFile )
 print( '     ALT = {:16.3f}'.format( alt ), file = sourceFile )
 print( '     DIST = {:16.3f}'.format( dist ), file = sourceFile )
