@@ -40,10 +40,10 @@ iobasemap = 'Io_GalileoSSI-Voyager_Global_Mosaic_ClrMerge_2km_180W.jpg'
 spiceypy.furnsh( metakr )
 
 encounters = []
-encounters.append(('PJ55', '10/15/2023 06:47:26.842'))
-encounters.append(('PJ57', '12/30/2023 08:36:10.874'))
-encounters.append(('PJ58', '02/03/2024 17:48:50.770'))
-encounters.append(('PJ60', '04/09/2024 05:00:37.158'))
+encounters.append(('PJ55', '10/15/2023 06:47:22.083'))
+encounters.append(('PJ57', '12/30/2023 08:36:01.025'))
+encounters.append(('PJ58', '02/03/2024 17:48:36.089'))
+encounters.append(('PJ60', '04/09/2024 04:58:04.030'))
 
 latplot = []
 lonplot = []

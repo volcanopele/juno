@@ -33,6 +33,7 @@ tdbfmt = 'YYYY MON DD HR:MN:SC.### TDB ::TDB'
 xlsxmt = 'MM/DD/YYYY HR:MN:SC.###'
     
 spiceypy.furnsh( metakr )
+spiceypy.furnsh( 'io_north_pole.bsp')
 
 # initialize text file output
 sourceFile = open( 'test.txt', 'w' )
@@ -89,8 +90,32 @@ else:
 	
 tabchar = "\t"
 
-# start of calculation of north clock angle
+# calculate angle separation between center of JIRAM FOV and Io center
 [jishape, jiframe, jibsight, jin, jivbounds] = spiceypy.getfov(jirmid, 25, 20, 4)
+sep = spiceypy.convrt(spiceypy.vsep(jibsight, pos), 'RADIANS', 'DEGREES')
+
+
+# NORTH CLOCK ANGLE CALCULATION
+# Find position vector of Io center in JIRAM reference frame
+[pos,ltime] = spiceypy.spkpos(target, et, jrmfrm, abcorr, scname)
+
+# Find position vector of Io north pole in JIRAM reference frame
+[pos_np,ltime_np] = spiceypy.spkpos('-501001', et, jrmfrm, abcorr, scname)
+
+# find difference between previous two vectors (Io center to Io North Pole vector 
+# in JIRAM reference frame. units in km)
+vout = spiceypy.vsub(pos_np, pos)
+
+# clock angle calculation (-180 to 180, clockwise. 0 degrees is up)
+raw_clock_angle = math.degrees(math.atan2(vout[1], vout[0]))
+
+# north clock angle now in 0 to 360, clockwise, with 0 degrees up
+if raw_clock_angle < 0.0:
+	northclockangle = 360 + raw_clock_angle
+else:
+	northclockangle = raw_clock_angle
+	
+# OUTPUT TEXT FILE
 
 print( 'Observation center time: {:s}'.format( timstr ), file = sourceFile )
 print( '     ALT = {:16.3f}'.format( alt ), file = sourceFile )
@@ -100,10 +125,14 @@ print( '     LON = {:16.3f}'.format( lon ), file = sourceFile )
 print( '     Sub-Solar LAT = {:1.3f}'.format(lat_slr * spiceypy.dpr() ), file = sourceFile )
 print( '     Sub-Solar LON = {:1.3f}'.format( lon_slr ), file = sourceFile )
 print( '     PHA = {:16.3f}'.format( phase*spiceypy.dpr() ), file = sourceFile )   
-print( '     JIRAM res = {:10.3f}'.format( jiramres ), file = sourceFile )
-print( '     JunoCAM res = {:8.3f}'.format( jncamres ), file = sourceFile )
+print( '     JIRAM res = {:20.3f}'.format( jiramres ), file = sourceFile )
+print( '     JunoCAM res = {:20.3f}'.format( jncamres ), file = sourceFile )
+print( '     JIRAM angular seperation = {:1.3f}'.format( sep ), file = sourceFile )
+print( '     North Clock Angle = {:14.3f}'.format( northclockangle ), file = sourceFile )
+print( '     PS North Clock Angle = {:11.3f}'.format( raw_clock_angle ), file = sourceFile )
 print( ' ', file = sourceFile )
 print(timstr, tabchar, tabchar, tabchar, '{:0.3f}'.format(lat * spiceypy.dpr()), tabchar, '{:0.3f}'.format(lon), tabchar, '{:0.3f}'.format(dist), tabchar, '{:0.3f}'.format(alt), tabchar, '{:0.3f}'.format(phase*spiceypy.dpr()), tabchar, '{:0.3f}'.format(jiramres), tabchar, '{:0.3f}'.format(jncamres), file = sourceFile)
 
 
 spiceypy.unload( metakr )
+spiceypy.unload( 'io_north_pole.bsp' )

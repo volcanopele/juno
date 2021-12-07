@@ -1,0 +1,15 @@
+To use this file, run:
+
+pinpoint -def pinpoint_ionp.defs -spk io_north_pole.bsp -pck pck00010.tpc
+
+\begindata
+
+ SITES     = ( 'IO_NORTH_POLE' )
+
+ IO_NORTH_POLE_CENTER = 501
+ IO_NORTH_POLE_FRAME  = 'IAU_IO'
+ IO_NORTH_POLE_IDCODE = -501001
+ IO_NORTH_POLE_LATLON = ( 90 0 0 )
+ IO_NORTH_POLE_BOUNDS = ( @1979-JAN-01, @2100-JAN-01 )
+
+\begintext
