@@ -3,6 +3,7 @@ from builtins import input
 import math
 import spiceypy.utils.support_types as stypes
 import spiceypy
+from tkinter import filedialog as fd
 
 ###
 # This script takes a time in UTC as input from the user
@@ -31,21 +32,83 @@ maxwin = 2 * maxivl
 relate = 'ABSMIN'
 tdbfmt = 'YYYY MON DD HR:MN:SC.### TDB ::TDB'
 xlsxmt = 'MM/DD/YYYY HR:MN:SC.###'
-    
+useLabel = False
+
+# initialize functions
+
+# fileParse takes an input JIRAM label file and pulls out pieces of information 
+# that will be used by the script, outputting as a tuple the image mid-time, 
+# product ID, and orbit number
+
+def fileParse(inputs):
+	file = open(inputs)
+	datafile = file.readlines()
+	for line in datafile:
+		if 'START_TIME' in line:
+			startTime = line
+			startTimes = startTime.split(" ")
+			startTimes = sorted(startTimes, reverse=True)
+			startTime = startTimes[2]
+		elif 'STOP_TIME' in line:
+			stopTime = line
+			stopTimes = stopTime.split(" ")
+			stopTimes = sorted(stopTimes, reverse=True)
+			stopTime = stopTimes[2]
+		elif 'PRODUCT_ID ' in line:
+			if line.startswith('PRODUCT_ID ', 0):
+				productID = line
+				productIDs = productID.split(" ")
+				productIDs = sorted(productIDs, reverse=True)
+				productID = productIDs[1]
+		elif 'ORBIT_NUMBER' in line:
+			orbit = line
+			orbits = orbit.split(" ")
+			orbits = sorted(orbits, reverse=True)
+			orbit = orbits[2]
+	etStart = spiceypy.str2et( startTime )
+	etStop = spiceypy.str2et( stopTime )
+	et = (etStart+etStop)/2
+	orbit = "PJ%s"%(orbit)
+	return [et, productID, orbit]
+	
+# script start
+
 spiceypy.furnsh( metakr )
-spiceypy.furnsh( 'io_north_pole.bsp')
+spiceypy.furnsh( 'io_north_pole.bsp' )
+
+inputFiles = fd.askopenfilenames(title='Open files', filetypes=(('PDS Labels', '*.LBL'), ('All files', '*.*')))
+
+if len(inputFiles) == 1:
+	useLabel = True
+	parseTuple = fileParse(inputFiles[0])
+	et1 = parseTuple[0]
+	et = et1
+	timstr = spiceypy.timout( et, xlsxmt )
+	productID = parseTuple[1]
+	orbit = parseTuple[2]
+elif len(inputFiles) == 2:
+	useLabel = True
+	parseTuple = fileParse(inputFiles[0])
+	et1 = parseTuple[0]
+	productID = parseTuple[1]
+	orbit = parseTuple[2]
+	parseTuple = fileParse(inputFiles[1])
+	et2 = parseTuple[0]
+	et = (et1+et2)/2
+	timstr = spiceypy.timout( et, xlsxmt )
+elif len(inputFiles) == 0 or len(inputFiles) > 2:
+	# ask user to input observation time
+	utctim = input( 'Input UTC Observation Time: ' )
+	
+	# Convert utctim to ET.
+	et = spiceypy.str2et( utctim )
+	et1 = et
+	
+	# back to excel format
+	timstr = spiceypy.timout( et, xlsxmt )
 
 # initialize text file output
-sourceFile = open( 'test.txt', 'w' )
-
-# ask user to input observation time
-utctim = input( 'Input UTC Observation Time: ' )
-
-# Convert utctim to ET.
-et = spiceypy.str2et( utctim )
-
-# back to excel format
-timstr = spiceypy.timout( et, xlsxmt )
+outputFile = open( 'test.txt', 'w' )
 
 # Compute the apparent state of Io as seen from JUNO in the IAU_IO frame.  
 # All of the ephemeris readers return states in units of kilometers and
@@ -95,12 +158,12 @@ tabchar = "\t"
 
 # NORTH CLOCK ANGLE CALCULATION
 # Find position vector of Io center in JIRAM reference frame
-[pos,ltime] = spiceypy.spkpos(target, et, jrmfrm, abcorr, scname)
+[pos,ltime] = spiceypy.spkpos(target, et1, jrmfrm, abcorr, scname)
 
 sep = spiceypy.convrt(spiceypy.vsep(jibsight, pos), 'RADIANS', 'DEGREES')
 
 # Find position vector of Io north pole in JIRAM reference frame
-[pos_np,ltime_np] = spiceypy.spkpos('-501001', et, jrmfrm, abcorr, scname)
+[pos_np,ltime_np] = spiceypy.spkpos('-501001', et1, jrmfrm, abcorr, scname)
 
 # normalize angle to North pole so that the distance matches the distance to Io center
 # north pole position projected on to detector this way
@@ -130,22 +193,27 @@ else:
 
 # OUTPUT TEXT FILE
 
-print( 'Observation center time: {:s}'.format( timstr ), file = sourceFile )
-print( '     ALT = {:16.3f}'.format( alt ), file = sourceFile )
-print( '     DIST = {:16.3f}'.format( dist ), file = sourceFile )
-print( '     LAT = {:16.3f}'.format(lat * spiceypy.dpr() ), file = sourceFile )
-print( '     LON = {:16.3f}'.format( lon ), file = sourceFile )
-print( '     Sub-Solar LAT = {:1.3f}'.format(lat_slr * spiceypy.dpr() ), file = sourceFile )
-print( '     Sub-Solar LON = {:1.3f}'.format( lon_slr ), file = sourceFile )
-print( '     PHA = {:16.3f}'.format( phase*spiceypy.dpr() ), file = sourceFile )   
-print( '     JIRAM res = {:20.3f}'.format( jiramres ), file = sourceFile )
-print( '     JunoCAM res = {:20.3f}'.format( jncamres ), file = sourceFile )
-print( '     JIRAM angular seperation = {:1.3f}'.format( sep ), file = sourceFile )
-print( '     North Clock Angle = {:14.3f}'.format( northclockangle ), file = sourceFile )
-print( '     PS North Clock Angle = {:11.3f}'.format( raw_clock_angle ), file = sourceFile )
-print( ' ', file = sourceFile )
-print(timstr, tabchar, '{:0.3f}'.format(dist), tabchar, '{:0.3f}'.format(alt), tabchar, '{:0.3f}'.format(lat * spiceypy.dpr()), tabchar, '{:0.3f}'.format(lon), tabchar, '{:0.3f}'.format(lat_slr * spiceypy.dpr()), tabchar, '{:0.3f}'.format( lon_slr ), tabchar, '{:0.3f}'.format(phase*spiceypy.dpr()), tabchar, '{:0.3f}'.format(jiramres), tabchar, '{:0.3f}'.format(jncamres), tabchar, '{:0.3f}'.format(northclockangle), tabchar, '{:0.3f}'.format(raw_clock_angle), file = sourceFile)
+print( 'Observation center time: {:s}'.format( timstr ), file = outputFile )
+print( '     ALT = {:16.3f}'.format( alt ), file = outputFile )
+print( '     DIST = {:16.3f}'.format( dist ), file = outputFile )
+print( '     LAT = {:16.3f}'.format(lat * spiceypy.dpr() ), file = outputFile )
+print( '     LON = {:16.3f}'.format( lon ), file = outputFile )
+print( '     Sub-Solar LAT = {:1.3f}'.format(lat_slr * spiceypy.dpr() ), file = outputFile )
+print( '     Sub-Solar LON = {:1.3f}'.format( lon_slr ), file = outputFile )
+print( '     PHA = {:16.3f}'.format( phase*spiceypy.dpr() ), file = outputFile )   
+print( '     JIRAM res = {:20.3f}'.format( jiramres ), file = outputFile )
+print( '     JunoCAM res = {:20.3f}'.format( jncamres ), file = outputFile )
+print( '     JIRAM angular seperation = {:1.3f}'.format( sep ), file = outputFile )
+print( '     North Clock Angle = {:14.3f}'.format( northclockangle ), file = outputFile )
+print( '     PS North Clock Angle = {:11.3f}'.format( raw_clock_angle ), file = outputFile )
+print( ' ', file = outputFile )
+if useLabel:
+	print(orbit, tabchar, productID, tabchar, timstr, tabchar, '{:0.3f}'.format(dist), tabchar, '{:0.3f}'.format(alt), tabchar, '{:0.3f}'.format(lat * spiceypy.dpr()), tabchar, '{:0.3f}'.format(lon), tabchar, '{:0.3f}'.format(lat_slr * spiceypy.dpr()), tabchar, '{:0.3f}'.format( lon_slr ), tabchar, '{:0.3f}'.format(phase*spiceypy.dpr()), tabchar, '{:0.3f}'.format(jiramres), tabchar, '{:0.3f}'.format(jncamres), tabchar, '{:0.3f}'.format(northclockangle), tabchar, '{:0.3f}'.format(raw_clock_angle), file = outputFile)
+else:
+	print(timstr, tabchar, '{:0.3f}'.format(dist), tabchar, '{:0.3f}'.format(alt), tabchar, '{:0.3f}'.format(lat * spiceypy.dpr()), tabchar, '{:0.3f}'.format(lon), tabchar, '{:0.3f}'.format(lat_slr * spiceypy.dpr()), tabchar, '{:0.3f}'.format( lon_slr ), tabchar, '{:0.3f}'.format(phase*spiceypy.dpr()), tabchar, '{:0.3f}'.format(jiramres), tabchar, '{:0.3f}'.format(jncamres), tabchar, '{:0.3f}'.format(northclockangle), tabchar, '{:0.3f}'.format(raw_clock_angle), file = outputFile)
 
 
 spiceypy.unload( metakr )
 spiceypy.unload( 'io_north_pole.bsp' )
+
+
