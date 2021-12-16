@@ -92,29 +92,42 @@ tabchar = "\t"
 
 # calculate angle separation between center of JIRAM FOV and Io center
 [jishape, jiframe, jibsight, jin, jivbounds] = spiceypy.getfov(jirmid, 25, 20, 4)
-sep = spiceypy.convrt(spiceypy.vsep(jibsight, pos), 'RADIANS', 'DEGREES')
-
 
 # NORTH CLOCK ANGLE CALCULATION
 # Find position vector of Io center in JIRAM reference frame
 [pos,ltime] = spiceypy.spkpos(target, et, jrmfrm, abcorr, scname)
 
+sep = spiceypy.convrt(spiceypy.vsep(jibsight, pos), 'RADIANS', 'DEGREES')
+
 # Find position vector of Io north pole in JIRAM reference frame
 [pos_np,ltime_np] = spiceypy.spkpos('-501001', et, jrmfrm, abcorr, scname)
 
+# normalize angle to North pole so that the distance matches the distance to Io center
+# north pole position projected on to detector this way
+xangle = math.atan2(pos_np[0], pos_np[2])
+yangle = math.atan2(pos_np[1], pos_np[2])
+
+# calculate north pole projection distance
+[dim, radii] = spiceypy.bodvrd(target, 'RADII', 3)
+normznp = math.sqrt(pow(pos[2],2) + pow(radii[2],2))
+
+normxnp = math.tan(xangle) * normznp
+normynp = math.tan(yangle) * normznp
+
 # find difference between previous two vectors (Io center to Io North Pole vector 
 # in JIRAM reference frame. units in km)
-vout = spiceypy.vsub(pos_np, pos)
+xsub = normxnp - pos[0]
+ysub = normynp - pos[1]
 
 # clock angle calculation (-180 to 180, clockwise. 0 degrees is up)
-raw_clock_angle = math.degrees(math.atan2(vout[1], vout[0]))
+raw_clock_angle = math.degrees(math.atan2(ysub, xsub))
 
 # north clock angle now in 0 to 360, clockwise, with 0 degrees up
 if raw_clock_angle < 0.0:
 	northclockangle = 360 + raw_clock_angle
 else:
 	northclockangle = raw_clock_angle
-	
+
 # OUTPUT TEXT FILE
 
 print( 'Observation center time: {:s}'.format( timstr ), file = sourceFile )
@@ -131,7 +144,7 @@ print( '     JIRAM angular seperation = {:1.3f}'.format( sep ), file = sourceFil
 print( '     North Clock Angle = {:14.3f}'.format( northclockangle ), file = sourceFile )
 print( '     PS North Clock Angle = {:11.3f}'.format( raw_clock_angle ), file = sourceFile )
 print( ' ', file = sourceFile )
-print(timstr, tabchar, tabchar, tabchar, '{:0.3f}'.format(lat * spiceypy.dpr()), tabchar, '{:0.3f}'.format(lon), tabchar, '{:0.3f}'.format(dist), tabchar, '{:0.3f}'.format(alt), tabchar, '{:0.3f}'.format(phase*spiceypy.dpr()), tabchar, '{:0.3f}'.format(jiramres), tabchar, '{:0.3f}'.format(jncamres), file = sourceFile)
+print(timstr, tabchar, '{:0.3f}'.format(dist), tabchar, '{:0.3f}'.format(alt), tabchar, '{:0.3f}'.format(lat * spiceypy.dpr()), tabchar, '{:0.3f}'.format(lon), tabchar, '{:0.3f}'.format(lat_slr * spiceypy.dpr()), tabchar, '{:0.3f}'.format( lon_slr ), tabchar, '{:0.3f}'.format(phase*spiceypy.dpr()), tabchar, '{:0.3f}'.format(jiramres), tabchar, '{:0.3f}'.format(jncamres), tabchar, '{:0.3f}'.format(northclockangle), tabchar, '{:0.3f}'.format(raw_clock_angle), file = sourceFile)
 
 
 spiceypy.unload( metakr )
