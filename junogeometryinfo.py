@@ -6,7 +6,8 @@ import spiceypy
 from tkinter import filedialog as fd
 
 ###
-# This script takes a time in UTC as input from the user
+# This script takes a time in UTC as input (either directly or via JIRAM 
+# label file(s)) from the user
 # It outputs geometry information for Juno WRT Io at that time
 # Outputting test.txt
 ###
@@ -76,27 +77,36 @@ def fileParse(inputs):
 spiceypy.furnsh( metakr )
 spiceypy.furnsh( 'io_north_pole.bsp' )
 
-inputFiles = fd.askopenfilenames(title='Open files', filetypes=(('PDS Labels', '*.LBL'), ('All files', '*.*')))
+# open file dialog. Select one or more label files as input. Hit cancel if you want to 
+# manually input a time
 
-if len(inputFiles) == 1:
+inputFiles = fd.askopenfilenames(title='Open files', filetypes=(('PDS Labels', '*.LBL'), ('All files', '*.*')))
+numFiles = len(inputFiles)
+
+if numFiles > 0:
 	useLabel = True
-	parseTuple = fileParse(inputFiles[0])
-	et1 = parseTuple[0]
-	et = et1
-	timstr = spiceypy.timout( et, xlsxmt )
-	productID = parseTuple[1]
-	orbit = parseTuple[2]
-elif len(inputFiles) == 2:
-	useLabel = True
-	parseTuple = fileParse(inputFiles[0])
-	et1 = parseTuple[0]
-	productID = parseTuple[1]
-	orbit = parseTuple[2]
-	parseTuple = fileParse(inputFiles[1])
-	et2 = parseTuple[0]
-	et = (et1+et2)/2
-	timstr = spiceypy.timout( et, xlsxmt )
-elif len(inputFiles) == 0 or len(inputFiles) > 2:
+	if numFiles & 1 == 1:
+		file = numFiles / 2
+		file = int(file)
+		parseTuple = fileParse(inputFiles[file])
+		et1 = parseTuple[0]
+		et = et1
+		timstr = spiceypy.timout( et, xlsxmt )
+		productID = parseTuple[1]
+		orbit = parseTuple[2]
+	else:
+		file = numFiles / 2
+		file = int(file)
+		parseTuple = fileParse(inputFiles[file])
+		et2 = parseTuple[0]
+		file = file - 1
+		parseTuple = fileParse(inputFiles[file])
+		et1 = parseTuple[0]
+		et = (et1+et2)/2
+		timstr = spiceypy.timout( et, xlsxmt )
+		productID = parseTuple[1]
+		orbit = parseTuple[2]
+else:
 	# ask user to input observation time
 	utctim = input( 'Input UTC Observation Time: ' )
 	
@@ -106,9 +116,6 @@ elif len(inputFiles) == 0 or len(inputFiles) > 2:
 	
 	# back to excel format
 	timstr = spiceypy.timout( et, xlsxmt )
-
-# initialize text file output
-outputFile = open( 'test.txt', 'w' )
 
 # Compute the apparent state of Io as seen from JUNO in the IAU_IO frame.  
 # All of the ephemeris readers return states in units of kilometers and
@@ -193,25 +200,60 @@ else:
 
 # OUTPUT TEXT FILE
 
-print( 'Observation center time: {:s}'.format( timstr ), file = outputFile )
-print( '     ALT = {:16.3f}'.format( alt ), file = outputFile )
-print( '     DIST = {:16.3f}'.format( dist ), file = outputFile )
-print( '     LAT = {:16.3f}'.format(lat * spiceypy.dpr() ), file = outputFile )
-print( '     LON = {:16.3f}'.format( lon ), file = outputFile )
-print( '     Sub-Solar LAT = {:1.3f}'.format(lat_slr * spiceypy.dpr() ), file = outputFile )
-print( '     Sub-Solar LON = {:1.3f}'.format( lon_slr ), file = outputFile )
-print( '     PHA = {:16.3f}'.format( phase*spiceypy.dpr() ), file = outputFile )   
-print( '     JIRAM res = {:20.3f}'.format( jiramres ), file = outputFile )
-print( '     JunoCAM res = {:20.3f}'.format( jncamres ), file = outputFile )
-print( '     JIRAM angular seperation = {:1.3f}'.format( sep ), file = outputFile )
-print( '     North Clock Angle = {:14.3f}'.format( northclockangle ), file = outputFile )
-print( '     PS North Clock Angle = {:11.3f}'.format( raw_clock_angle ), file = outputFile )
+# initialize text file output
+outputFile = open( 'test.txt', 'w' )
+
+# Human readable portion
+if useLabel:
+	print( 'PRODUCT_ID               = {:s}'.format( productID ), file = outputFile )
+	print( 'ORBIT                    = {:s}'.format( orbit ), file = outputFile )
+print( 'OBSERVATION MID-TIME     = {:s}'.format( timstr ), file = outputFile )
+print( 'DISTANCE                 = {:1.3f}'.format( dist ), file = outputFile )
+print( 'ALTITUDE                 = {:1.3f}'.format( alt ), file = outputFile )
+print( 'LATITUDE                 = {:1.3f}'.format(lat * spiceypy.dpr() ), file = outputFile )
+print( 'LONGITUDE                = {:1.3f}'.format( lon ), file = outputFile )
+print( 'SUB-SOLAR LATITUDE       = {:1.3f}'.format(lat_slr * spiceypy.dpr() ), file = outputFile )
+print( 'SUB-SOLAR LONGITUDE      = {:1.3f}'.format( lon_slr ), file = outputFile )
+print( 'PHASE_ANGLE              = {:1.3f}'.format( phase*spiceypy.dpr() ), file = outputFile )   
+print( 'JIRAM PIXEL SCALE        = {:1.3f}'.format( jiramres ), file = outputFile )
+print( 'JUNOCAM PIXEL SCALE      = {:1.3f}'.format( jncamres ), file = outputFile )
+print( 'JIRAM ANGULAR SEPERATION = {:1.3f}'.format( sep ), file = outputFile )
+print( 'NORTH CLOCK ANGLE        = {:1.3f}'.format( northclockangle ), file = outputFile )
+print( 'PS NORTH CLOCK ANGLE     = {:1.3f}'.format( raw_clock_angle ), file = outputFile )
+if useLabel:
+	print( 'FRAMES                   = {:d}'.format( numFiles ), file = outputFile )
 print( ' ', file = outputFile )
+
+# tab-delimited format
 if useLabel:
 	print(orbit, tabchar, productID, tabchar, timstr, tabchar, '{:0.3f}'.format(dist), tabchar, '{:0.3f}'.format(alt), tabchar, '{:0.3f}'.format(lat * spiceypy.dpr()), tabchar, '{:0.3f}'.format(lon), tabchar, '{:0.3f}'.format(lat_slr * spiceypy.dpr()), tabchar, '{:0.3f}'.format( lon_slr ), tabchar, '{:0.3f}'.format(phase*spiceypy.dpr()), tabchar, '{:0.3f}'.format(jiramres), tabchar, '{:0.3f}'.format(jncamres), tabchar, '{:0.3f}'.format(northclockangle), tabchar, '{:0.3f}'.format(raw_clock_angle), file = outputFile)
 else:
 	print(timstr, tabchar, '{:0.3f}'.format(dist), tabchar, '{:0.3f}'.format(alt), tabchar, '{:0.3f}'.format(lat * spiceypy.dpr()), tabchar, '{:0.3f}'.format(lon), tabchar, '{:0.3f}'.format(lat_slr * spiceypy.dpr()), tabchar, '{:0.3f}'.format( lon_slr ), tabchar, '{:0.3f}'.format(phase*spiceypy.dpr()), tabchar, '{:0.3f}'.format(jiramres), tabchar, '{:0.3f}'.format(jncamres), tabchar, '{:0.3f}'.format(northclockangle), tabchar, '{:0.3f}'.format(raw_clock_angle), file = outputFile)
 
+
+# OUTPUT ISIS script file
+
+if useLabel:
+	isisFile = open( 'Juno_JIRAM_script2.sh', 'w')
+	print('#!/bin/bash', file = isisFile)
+	print( '', file = isisFile)
+	print('PERIJOVE="' + orbit + '"', file = isisFile)
+	print('IMAGE_NAME="' + productID + '"', file = isisFile)
+	print('DIRECTORY="/Users/perry/Dropbox/Io/Juno/$PERIJOVE/$IMAGE_NAME"', file = isisFile)
+	print('BASEMAP="/Users/perry/Dropbox/Io/Io_GalileoSSI-Voyager_Global_Mosaic_1km.cub"', file = isisFile)
+	print('CLAT="' + '{:.3f}'.format(lat * spiceypy.dpr()) + '"', file = isisFile)
+	print('CLON="' + '{:.3f}'.format(lon) + '"', file = isisFile)
+	print('RES="' + '{:.3f}'.format(jiramres) + '"', file = isisFile)
+	print('RES=$(echo "${RES}/20" | bc -l)', file = isisFile)
+	print('DISTANCE="' + '{:.3f}'.format(alt) + '"', file = isisFile)
+	print('ROTATION="' + '{:.3f}'.format(northclockangle) + '"', file = isisFile)
+	print( '', file = isisFile)
+	print('mkdir $DIRECTORY', file = isisFile)
+	print('cd $DIRECTORY', file = isisFile)
+	print('maptemplate map=$IMAGE_NAME.map targopt=user targetname=Io clat=$CLAT clon=$CLON dist=$DISTANCE londir=POSITIVEWEST projection=POINTPERSPECTIVE resopt=MPP resolution=$RES rngopt=user minlat=-90 maxlat=90 minlon=0 maxlon=360', file = isisFile)
+	print('map2map from=$BASEMAP to=$IMAGE_NAME.map.cub map=$IMAGE_NAME.map pixres=map defaultrange=map', file = isisFile)
+	print('rotate from=$IMAGE_NAME.map.cub to=$IMAGE_NAME.rotate.cub degrees=$ROTATION', file = isisFile)
+	print('isis2std from=$IMAGE_NAME.map.cub to=$IMAGE_NAME.map.tif format=tiff bittype=U16BIT stretch=manual minimum=0 maximum=1', file = isisFile)
 
 spiceypy.unload( metakr )
 spiceypy.unload( 'io_north_pole.bsp' )
