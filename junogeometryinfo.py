@@ -9,7 +9,10 @@ from tkinter import filedialog as fd
 # This script takes a time in UTC as input (either directly or via JIRAM 
 # label file(s)) from the user
 # It outputs geometry information for Juno WRT Io at that time
-# Outputting test.txt
+# Outputting test.txt with geometric information in human readable, 
+# tab-delimited, and comma-delimited formats.
+# Also outputs Juno_JIRAM_script2.sh, a shell script to be run in ISIS to 
+# create basemaps
 ###
 
 # initialize variables
@@ -42,8 +45,15 @@ useLabel = False
 # product ID, and orbit number
 
 def fileParse(inputs):
+	# opens input file
 	file = open(inputs)
+	# converts input file into an array of lines
 	datafile = file.readlines()
+	# this for loop takes a look at each line in datafile and looks for four lines
+	# with information needed for this script including the image start time, stop 
+	# time, product ID, and orbit number. If found, the loop will parse the line by
+	# split it by spaces then sorts the resulting array so that the value we need 
+	# is at a consistent position.
 	for line in datafile:
 		if 'START_TIME' in line:
 			startTime = line
@@ -66,14 +76,20 @@ def fileParse(inputs):
 			orbits = orbit.split(" ")
 			orbits = sorted(orbits, reverse=True)
 			orbit = orbits[2]
-	etStart = spiceypy.str2et( startTime )
-	etStop = spiceypy.str2et( stopTime )
+	# start and stop time converted to seconds past J2000
+	etStart = spiceypy.str2et(startTime)
+	etStop = spiceypy.str2et(stopTime)
+	# Image mid-time calculated
 	et = (etStart+etStop)/2
 	orbit = "PJ%s"%(orbit)
+	# tuple with image mid-time, product ID, and orbit output by function
 	return [et, productID, orbit]
 	
-# script start
+####################
+### SCRIPT START ###
+####################
 
+# initialize spice files
 spiceypy.furnsh( metakr )
 spiceypy.furnsh( 'io_north_pole.bsp' )
 
@@ -83,8 +99,17 @@ spiceypy.furnsh( 'io_north_pole.bsp' )
 inputFiles = fd.askopenfilenames(title='Open files', filetypes=(('PDS Labels', '*.LBL'), ('All files', '*.*')))
 numFiles = len(inputFiles)
 
+# based on whether a file was selected or not, the observation mid-time is converted to 
+# seconds after J2000. Other variables are set to be used when outputting a text file, 
+# including product ID, orbit number, and the time in a string meant for Excel
 if numFiles > 0:
 	useLabel = True
+	# if an odd number of labels are selected, the middle label is used for calculations
+	# by this script. Otherwise, else will select the middle two labels. The observation
+	# mid-time will be the average of the two individual image mid-times. This time is
+	# used by most of the script to calculate geometric values except for north clock
+	# angle, which will use the first of the two middle labels. Product ID also uses this 
+	# label.
 	if numFiles & 1 == 1:
 		file = numFiles / 2
 		file = int(file)
@@ -157,8 +182,6 @@ if lon_slr <= 0.0:
 	lon_slr = math.fabs(lon_slr)
 else:
 	lon_slr = 360.0 - lon_slr
-	
-tabchar = "\t"
 
 # calculate angle separation between center of JIRAM FOV and Io center
 [jishape, jiframe, jibsight, jin, jivbounds] = spiceypy.getfov(jirmid, 25, 20, 4)
@@ -226,9 +249,21 @@ print( ' ', file = outputFile )
 
 # tab-delimited format
 if useLabel:
-	print(orbit, tabchar, productID, tabchar, timstr, tabchar, '{:0.3f}'.format(dist), tabchar, '{:0.3f}'.format(alt), tabchar, '{:0.3f}'.format(lat * spiceypy.dpr()), tabchar, '{:0.3f}'.format(lon), tabchar, '{:0.3f}'.format(lat_slr * spiceypy.dpr()), tabchar, '{:0.3f}'.format( lon_slr ), tabchar, '{:0.3f}'.format(phase*spiceypy.dpr()), tabchar, '{:0.3f}'.format(jiramres), tabchar, '{:0.3f}'.format(jncamres), tabchar, '{:0.3f}'.format(northclockangle), tabchar, '{:0.3f}'.format(raw_clock_angle), file = outputFile)
+	print('Perijove\tObservation\tImage Mid-Time (UTC)\tNumber of Frames\tSC Distance (Io, km)\tSC Altitude (Io, km)\tSC Latitude (Io IAU, deg)\tSC W Longitude (Io IAU, deg)\tSub-Solar Latitude (Io IAU, deg)\tSub-Solar W Longitude (Io IAU, deg)\tPhase Angle\tJIRAM scale (m/pixel)\tJunoCAM scale (m/pixel)\tNorth Clock Angle\tPS North Clock Angle', file = outputFile)
+	print(orbit + '\t' + productID + '\t' + timstr + '\t' + '{:d}'.format(numFiles) + '\t' + '{:.3f}'.format(dist) + '\t' + '{:.3f}'.format(alt) + '\t' + '{:.3f}'.format(lat * spiceypy.dpr()) + '\t' + '{:.3f}'.format(lon) + '\t' + '{:.3f}'.format(lat_slr * spiceypy.dpr()) + '\t' + '{:.3f}'.format(lon_slr) + '\t' + '{:.3f}'.format(phase*spiceypy.dpr()) + '\t' + '{:.3f}'.format(jiramres) + '\t' + '{:.3f}'.format(jncamres) + '\t' + '{:.3f}'.format(northclockangle) + '\t' + '{:.3f}'.format(raw_clock_angle), file = outputFile)
 else:
-	print(timstr, tabchar, '{:0.3f}'.format(dist), tabchar, '{:0.3f}'.format(alt), tabchar, '{:0.3f}'.format(lat * spiceypy.dpr()), tabchar, '{:0.3f}'.format(lon), tabchar, '{:0.3f}'.format(lat_slr * spiceypy.dpr()), tabchar, '{:0.3f}'.format( lon_slr ), tabchar, '{:0.3f}'.format(phase*spiceypy.dpr()), tabchar, '{:0.3f}'.format(jiramres), tabchar, '{:0.3f}'.format(jncamres), tabchar, '{:0.3f}'.format(northclockangle), tabchar, '{:0.3f}'.format(raw_clock_angle), file = outputFile)
+	print('Image Mid-Time (UTC)\t\tSC Distance (Io, km)\tSC Altitude (Io, km)\tSC Latitude (Io IAU, deg)\tSC W Longitude (Io IAU, deg)\tSub-Solar Latitude (Io IAU, deg)\tSub-Solar W Longitude (Io IAU, deg)\tPhase Angle\tJIRAM scale (m/pixel)\tJunoCAM scale (m/pixel)\tNorth Clock Angle\tPS North Clock Angle', file = outputFile)
+	print(timstr + '\t\t' + '{:.3f}'.format(dist) + '\t' + '{:.3f}'.format(alt) + '\t' + '{:.3f}'.format(lat * spiceypy.dpr()) + '\t' + '{:.3f}'.format(lon) + '\t' + '{:.3f}'.format(lat_slr * spiceypy.dpr()) + '\t' + '{:.3f}'.format(lon_slr) + '\t' + '{:.3f}'.format(phase*spiceypy.dpr()) + '\t' + '{:.3f}'.format(jiramres) + '\t' + '{:.3f}'.format(jncamres) + '\t' + '{:.3f}'.format(northclockangle) + '\t' + '{:.3f}'.format(raw_clock_angle), file = outputFile)
+
+print( '', file = outputFile )
+
+# comma-delimited format
+if useLabel:
+	print('Perijove,Observation,Image Mid-Time (UTC),Number of Frames,"SC Distance (Io, km)","SC Altitude (Io, km)","SC Latitude (Io IAU, deg)","SC W Longitude (Io IAU, deg)","Sub-Solar Latitude (Io IAU, deg)","Sub-Solar W Longitude (Io IAU, deg)",Phase Angle,JIRAM scale (m/pixel),JunoCAM scale (m/pixel),North Clock Angle,PS North Clock Angle', file = outputFile)
+	print(orbit + ',' + productID + ',' + timstr + ',' + '{:d}'.format(numFiles) + ',' + '{:.3f}'.format(dist) + ',' + '{:.3f}'.format(alt) + ',' + '{:.3f}'.format(lat * spiceypy.dpr()) + ',' + '{:.3f}'.format(lon) + ',' + '{:.3f}'.format(lat_slr * spiceypy.dpr()) + ',' + '{:.3f}'.format(lon_slr) + ',' + '{:.3f}'.format(phase*spiceypy.dpr()) + ',' + '{:.3f}'.format(jiramres) + ',' + '{:.3f}'.format(jncamres) + ',' + '{:.3f}'.format(northclockangle) + ',' + '{:.3f}'.format(raw_clock_angle), file = outputFile)
+else:
+	print('Image Mid-Time (UTC),Number of Frames,"SC Distance (Io, km)","SC Altitude (Io, km)","SC Latitude (Io IAU, deg)","SC W Longitude (Io IAU, deg)","Sub-Solar Latitude (Io IAU, deg)","Sub-Solar W Longitude (Io IAU, deg)",Phase Angle,JIRAM scale (m/pixel),JunoCAM scale (m/pixel),North Clock Angle,PS North Clock Angle', file = outputFile)
+	print(timstr + ',' + '{:.3f}'.format(dist) + ',' + '{:.3f}'.format(alt) + ',' + '{:.3f}'.format(lat * spiceypy.dpr()) + ',' + '{:.3f}'.format(lon) + ',' + '{:.3f}'.format(lat_slr * spiceypy.dpr()) + ',' + '{:.3f}'.format(lon_slr) + ',' + '{:.3f}'.format(phase*spiceypy.dpr()) + ',' + '{:.3f}'.format(jiramres) + ',' + '{:.3f}'.format(jncamres) + ',' + '{:.3f}'.format(northclockangle) + ',' + '{:.3f}'.format(raw_clock_angle), file = outputFile)
 
 
 # OUTPUT ISIS script file
