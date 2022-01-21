@@ -1,0 +1,9 @@
+Object = AutoSeed
+  Group = PolygonSeederAlgorithm
+    Name = Strip
+    MinimumThickness = 0.0
+    XSpacing = 40000
+    YSpacing = 20000
+    PixelsFromEdge = 10.0
+  EndGroup
+EndObject

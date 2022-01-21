@@ -54,14 +54,6 @@ def fileParse(inputs):
 	# split it by spaces then sorts the resulting array so that the value we need 
 	# is at a consistent position.
 	for line in datafile:
-		if 'TARGET_NAME' in line:
-			targetName = line
-			targetNames = targetName.split(" ")
-			targetNames = sorted(targetNames, reverse=True)
-			targetName = targetNames[2]
-			
-			targetNames = targetName.split('"')
-			targetName = targetNames[1]
 		if 'START_TIME' in line:
 			startTime = line
 			startTimes = startTime.split(" ")
@@ -94,7 +86,7 @@ def fileParse(inputs):
 	file.close()
 	
 	# tuple with image mid-time, product ID, and orbit output by function
-	return [et, productID, orbit, targetName]
+	return [et, productID, orbit]
 	
 
 	
@@ -112,112 +104,100 @@ spiceypy.furnsh( 'io_north_pole.bsp' )
 inputFiles = fd.askopenfilenames(title='Select Labels', filetypes=(('PDS Labels', '*.LBL'), ('All files', '*.*')))
 numFiles = len(inputFiles)
 
-# based on whether a file was selected or not, the observation mid-time is converted to 
-# seconds after J2000. Other variables are set to be used when outputting a text file, 
-# including product ID, orbit number, and the time in a string meant for Excel
 if numFiles > 0:
-	# if an odd number of labels are selected, the middle label is used for calculations
-	# by this script. Otherwise, else will select the middle two labels. The observation
-	# mid-time will be the average of the two individual image mid-times. This time is
-	# used by most of the script to calculate geometric values except for north clock
-	# angle, which will use the first of the two middle labels. Product ID also uses this 
-	# label.
 	outputFile = open( 'test.csv', 'w' )
 	print('Perijove,Observation,Image Mid-Time (UTC),"SC Distance (Io, km)","SC Altitude (Io, km)","SC Latitude (Io IAU, deg)","SC W Longitude (Io IAU, deg)","Sub-Solar Latitude (Io IAU, deg)","Sub-Solar W Longitude (Io IAU, deg)",Phase Angle,JIRAM scale (m/pixel),JunoCAM scale (m/pixel),North Clock Angle,PS North Clock Angle', file = outputFile)
 	
 	for file in inputFiles:
 		parseTuple = fileParse(file)
 		
-		# check to see if image is of Io
-		targetName = parseTuple[3]
-		if targetName == target:
-			et = parseTuple[0]
-			timstr = spiceypy.timout( et, xlsxmt )
-			productID = parseTuple[1]
-			orbit = parseTuple[2]
-		
-			# Compute the apparent state of Io as seen from JUNO in the IAU_IO frame.  
-			# All of the ephemeris readers return states in units of kilometers and
-			# kilometers per second.
-			[state, ltime] = spiceypy.spkezr( target, et, tarfrm, abcorr, scname )
-
-			# Compute the distance between the body centers in kilometers.
-			dist = spiceypy.vnorm( state )
-
-			# obtain cartesian coordinates for sub-spacecraft point at the time of closest approach
-			[spoint, trgepc, srfvec] = spiceypy.subpnt( method, target, et, tarfrm, abcorr, scname )
-
-			# convert cartesian coordinates of lat/lon
-			[radius, lon, lat] = spiceypy.reclat( spoint )
-
-			# convert longitude domain from -180-180 E longitude to 0-360 W longitude
-			lon = lon * spiceypy.dpr()
-			if lon <= 0.0:
-				lon = math.fabs(lon)
-			else:
-				lon = 360.0 - lon
+		et = parseTuple[0]
+		timstr = spiceypy.timout( et, xlsxmt )
+		productID = parseTuple[1]
+		orbit = parseTuple[2]
 	
-			  
-			# compute altitude
-			alt = spiceypy.vnorm( srfvec )
+		# Compute the apparent state of Io as seen from JUNO in the IAU_IO frame.  
+		# All of the ephemeris readers return states in units of kilometers and
+		# kilometers per second.
+		[state, ltime] = spiceypy.spkezr( target, et, tarfrm, abcorr, scname )
 
-			# camera resolution
-			jncamres = alt * 0.6727
-			jiramres = alt * 0.237767
+		# Compute the distance between the body centers in kilometers.
+		dist = spiceypy.vnorm( state )
 
-			[trgepc, srfvec, phase, incdnc, emissn, visibl, lit] = spiceypy.illumf(
-						  method2, target, 'SUN', et, tarfrm, abcorr, scname, spoint )
+		# obtain cartesian coordinates for sub-spacecraft point at the time of closest approach
+		[spoint, trgepc, srfvec] = spiceypy.subpnt( method, target, et, tarfrm, abcorr, scname )
 
-			# calculating subsolar point
-			[spoint_slr, trgepc_slr, srfvec_slr] = spiceypy.subslr( method, target, et, tarfrm, abcorr, scname )
-			[radius_slr, lon_slr, lat_slr] = spiceypy.reclat( spoint_slr )
-			lon_slr = lon_slr * spiceypy.dpr()
-			if lon_slr <= 0.0:
-				lon_slr = math.fabs(lon_slr)
-			else:
-				lon_slr = 360.0 - lon_slr
+		# convert cartesian coordinates of lat/lon
+		[radius, lon, lat] = spiceypy.reclat( spoint )
 
-			# calculate angle separation between center of JIRAM FOV and Io center
-			[jishape, jiframe, jibsight, jin, jivbounds] = spiceypy.getfov(jirmid, 25, 20, 4)
+		# convert longitude domain from -180-180 E longitude to 0-360 W longitude
+		lon = lon * spiceypy.dpr()
+		if lon <= 0.0:
+			lon = math.fabs(lon)
+		else:
+			lon = 360.0 - lon
 
-			# NORTH CLOCK ANGLE CALCULATION
-			# Find position vector of Io center in JIRAM reference frame
-			[pos,ltime] = spiceypy.spkpos(target, et, jrmfrm, abcorr, scname)
+		  
+		# compute altitude
+		alt = spiceypy.vnorm( srfvec )
 
-			sep = spiceypy.convrt(spiceypy.vsep(jibsight, pos), 'RADIANS', 'DEGREES')
+		# camera resolution
+		jncamres = alt * 0.6727
+		jiramres = alt * 0.237767
 
-			# Find position vector of Io north pole in JIRAM reference frame
-			[pos_np,ltime_np] = spiceypy.spkpos('-501001', et, jrmfrm, abcorr, scname)
+		[trgepc, srfvec, phase, incdnc, emissn, visibl, lit] = spiceypy.illumf(
+					  method2, target, 'SUN', et, tarfrm, abcorr, scname, spoint )
 
-			# normalize angle to North pole so that the distance matches the distance to Io center
-			# north pole position projected on to detector this way
-			xangle = math.atan2(pos_np[0], pos_np[2])
-			yangle = math.atan2(pos_np[1], pos_np[2])
+		# calculating subsolar point
+		[spoint_slr, trgepc_slr, srfvec_slr] = spiceypy.subslr( method, target, et, tarfrm, abcorr, scname )
+		[radius_slr, lon_slr, lat_slr] = spiceypy.reclat( spoint_slr )
+		lon_slr = lon_slr * spiceypy.dpr()
+		if lon_slr <= 0.0:
+			lon_slr = math.fabs(lon_slr)
+		else:
+			lon_slr = 360.0 - lon_slr
 
-			# calculate north pole projection distance
-			[dim, radii] = spiceypy.bodvrd(target, 'RADII', 3)
-			normznp = math.sqrt(pow(pos[2],2) + pow(radii[2],2))
+		# calculate angle separation between center of JIRAM FOV and Io center
+		[jishape, jiframe, jibsight, jin, jivbounds] = spiceypy.getfov(jirmid, 25, 20, 4)
 
-			normxnp = math.tan(xangle) * normznp
-			normynp = math.tan(yangle) * normznp
+		# NORTH CLOCK ANGLE CALCULATION
+		# Find position vector of Io center in JIRAM reference frame
+		[pos,ltime] = spiceypy.spkpos(target, et, jrmfrm, abcorr, scname)
 
-			# find difference between previous two vectors (Io center to Io North Pole vector 
-			# in JIRAM reference frame. units in km)
-			xsub = normxnp - pos[0]
-			ysub = normynp - pos[1]
+		sep = spiceypy.convrt(spiceypy.vsep(jibsight, pos), 'RADIANS', 'DEGREES')
 
-			# clock angle calculation (-180 to 180, clockwise. 0 degrees is up)
-			raw_clock_angle = math.degrees(math.atan2(ysub, xsub))
+		# Find position vector of Io north pole in JIRAM reference frame
+		[pos_np,ltime_np] = spiceypy.spkpos('-501001', et, jrmfrm, abcorr, scname)
 
-			# north clock angle now in 0 to 360, clockwise, with 0 degrees up
-			if raw_clock_angle < 0.0:
-				northclockangle = 360 + raw_clock_angle
-			else:
-				northclockangle = raw_clock_angle
+		# normalize angle to North pole so that the distance matches the distance to Io center
+		# north pole position projected on to detector this way
+		xangle = math.atan2(pos_np[0], pos_np[2])
+		yangle = math.atan2(pos_np[1], pos_np[2])
 
-			# OUTPUT CSV LINE
+		# calculate north pole projection distance
+		[dim, radii] = spiceypy.bodvrd(target, 'RADII', 3)
+		normznp = math.sqrt(pow(pos[2],2) + pow(radii[2],2))
 
-			print(orbit + ',' + productID + ',' + timstr + ',' + '{:.3f}'.format(dist) + ',' + '{:.3f}'.format(alt) + ',' + '{:.3f}'.format(lat * spiceypy.dpr()) + ',' + '{:.3f}'.format(lon) + ',' + '{:.3f}'.format(lat_slr * spiceypy.dpr()) + ',' + '{:.3f}'.format(lon_slr) + ',' + '{:.3f}'.format(phase*spiceypy.dpr()) + ',' + '{:.3f}'.format(jiramres) + ',' + '{:.3f}'.format(jncamres) + ',' + '{:.3f}'.format(northclockangle) + ',' + '{:.3f}'.format(raw_clock_angle), file = outputFile)
+		normxnp = math.tan(xangle) * normznp
+		normynp = math.tan(yangle) * normznp
+
+		# find difference between previous two vectors (Io center to Io North Pole vector 
+		# in JIRAM reference frame. units in km)
+		xsub = normxnp - pos[0]
+		ysub = normynp - pos[1]
+
+		# clock angle calculation (-180 to 180, clockwise. 0 degrees is up)
+		raw_clock_angle = math.degrees(math.atan2(ysub, xsub))
+
+		# north clock angle now in 0 to 360, clockwise, with 0 degrees up
+		if raw_clock_angle < 0.0:
+			northclockangle = 360 + raw_clock_angle
+		else:
+			northclockangle = raw_clock_angle
+
+		# OUTPUT CSV LINE
+
+		print(orbit + ',' + productID + ',' + timstr + ',' + '{:.3f}'.format(dist) + ',' + '{:.3f}'.format(alt) + ',' + '{:.3f}'.format(lat * spiceypy.dpr()) + ',' + '{:.3f}'.format(lon) + ',' + '{:.3f}'.format(lat_slr * spiceypy.dpr()) + ',' + '{:.3f}'.format(lon_slr) + ',' + '{:.3f}'.format(phase*spiceypy.dpr()) + ',' + '{:.3f}'.format(jiramres) + ',' + '{:.3f}'.format(jncamres) + ',' + '{:.3f}'.format(northclockangle) + ',' + '{:.3f}'.format(raw_clock_angle), file = outputFile)
 else:
 	print("No files entered")
 

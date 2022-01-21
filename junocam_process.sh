@@ -105,9 +105,9 @@ cd ../jigsaw
 
 ls -1 *.trim.cub > image_list.lis
 ls -1 *.cub | sed s/.trim.cub// > image_name.lis
-footprintinit from=\$1 -batchlist=image_name.lis
-findimageoverlaps from=image_name.lis overlaplist=overlaps.txt
-autoseed fromlist=image_name.lis overlaplist=overlaps.txt deffile=../autoseed_strip.def \
+footprintinit from=\$1 -batchlist=image_list.lis
+findimageoverlaps from=image_list.lis overlaplist=overlaps.txt
+autoseed fromlist=image_list.lis overlaplist=overlaps.txt deffile=../autoseed_strip.def \
 	onet=autoseed_strip.net errors=autoseed_grid.err networkid=34C00001.1 \
 	pointid=34C00001.\?\?\?\?\?\?\? description="34C00001 grid1"
 # can also create the control network in qnet if you don't want to have a lot of unusable points

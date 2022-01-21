@@ -292,7 +292,7 @@ if useLabel:
 	print('maptemplate map=$IMAGE_NAME.map targopt=user targetname=Io clat=$CLAT clon=$CLON dist=$DISTANCE londir=POSITIVEWEST projection=POINTPERSPECTIVE resopt=MPP resolution=$RES rngopt=user minlat=-90 maxlat=90 minlon=0 maxlon=360', file = isisFile)
 	print('map2map from=$BASEMAP to=$IMAGE_NAME.map.cub map=$IMAGE_NAME.map pixres=map defaultrange=map', file = isisFile)
 	print('rotate from=$IMAGE_NAME.map.cub to=$IMAGE_NAME.rotate.cub degrees=$ROTATION', file = isisFile)
-	print('isis2std from=$IMAGE_NAME.map.cub to=$IMAGE_NAME.map.tif format=tiff bittype=U16BIT stretch=manual minimum=0 maximum=1', file = isisFile)
+	print('isis2std from=$IMAGE_NAME.rotate.cub to=$IMAGE_NAME.map.tif format=tiff bittype=U16BIT stretch=manual minimum=0 maximum=1', file = isisFile)
 
 spiceypy.unload( metakr )
 spiceypy.unload( 'io_north_pole.bsp' )
