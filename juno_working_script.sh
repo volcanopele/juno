@@ -72,7 +72,7 @@ ratio numerator=\$1.cub \
 
 trim from=\$1.flat.cub to=\$1.trim.cub top=4 bottom=4 left=25 right=17 -batchlist=image_name.lis
 spiceinit from=\$1.trim.cub ckpredicted=true spkpredicted=true attach=true -batchlist=image_name.lis
-cp *trim.cub /Volumes/TouchT7/scratch/jigsaw
+cp *trim.cub /Volumes/TouchT7/scratch/pj34/jigsaw
 
 junocam2isis from=JNCE_2021158_34C00002_V01-raw-adjusted.lbl to=initial/JNCE_2021158_34C00002_V01.cub
 cd initial
@@ -130,7 +130,7 @@ jigsaw fromlist=JNCE_2021158_34C00001_V01.disk.lis cnet=PJ34_Ganymede.net \
 cp JNCE_2021158_34C00001_V01*trim.cub /Volumes/TouchT7/scratch/34C00001/test/jigsawed
 cp JNCE_2021158_34C00002_V01*trim.cub /Volumes/TouchT7/scratch/34C00002/jigsawed
 
-cam2map from=\$1 to=../projected/\$1 map=../JNCE_2021158_34C00001_V01.map \
+cam2map from=\$1 to=../projected/\$1 map=../JNCR_2021158_34C00001_V01.map \
     pixres=map -batchlist=34C00001.lis
 cd ../projected
 ls -1 *_GREEN_* > GREEN_images.lis
