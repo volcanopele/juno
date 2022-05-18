@@ -121,9 +121,20 @@ if numFiles > 0:
 		# setup output file
 		root = os.path.dirname(file)
 		name = os.path.basename(file)
-		outputFile = root + '/' + productID + '.csv'
-		print(outputFile)
-		outputFile = open( outputFile, 'w' )
+		fileBase = root + '/' + productID
+		latitudeFile = fileBase + '_latitude.csv'
+		longitudeFile = fileBase + '_longitude.csv'
+		altitudeFile = fileBase + '_altitude.csv'
+		emissionFile = fileBase + '_emission.csv'
+		incidenceFile = fileBase + '_incidence.csv'
+		phaseFile = fileBase + '_phase.csv'
+		
+		latitudeFile = open( latitudeFile, 'w' )
+		longitudeFile = open( longitudeFile, 'w' )
+		altitudeFile = open( altitudeFile, 'w' )
+		emissionFile = open( emissionFile, 'w' )
+		incidenceFile = open( incidenceFile, 'w' )
+		phaseFile = open( phaseFile, 'w' )
 		
 		# may not even this part
 		
@@ -147,7 +158,10 @@ if numFiles > 0:
 		else:
 			lon = 360.0 - lon
 		
+		print(lat,lon)
+		
 		[pos,ltime] = spiceypy.spkpos(target, et, jrmfrm, abcorr, scname)
+		print(pos)
 		
 		# L-band
 		[shape, frame, bsight, nbounds, bounds] = spiceypy.getfov(lbandfrm, 20)
@@ -175,7 +189,12 @@ if numFiles > 0:
 		lalt.fill(-1024.0)
 		
 		for i in range(0,128):
-			line = ""
+			latitudeLine = ""
+			longitudeLine = ""
+			altitudeLine = ""
+			emissionLine = ""
+			phaseLine = ""
+			incidenceLine = ""
 			for j in range(0,432):
 				dvec=[yp[i],xp[j],zp]
 				with spiceypy.no_found_check():
@@ -184,16 +203,31 @@ if numFiles > 0:
 						[loni, lati, alti] = spiceypy.recpgr(target, spoint, radii[0], (radii[0]-radii[2])/radii[0])
 						llon[j,i] = loni * spiceypy.dpr()
 						llat[j,i] = lati * spiceypy.dpr()
-						lalt[j,i] = alti
+						lalt[j,i] = spiceypy.vnorm( srfvec )
 						[trgepc, srfvec, phase, solar, emissn] = spiceypy.ilumin(method2,target, etStart, tarfrm, abcorr, scname, spoint)
 						linc[j,i] = solar * spiceypy.dpr()
 						lemm[j,i] = emissn * spiceypy.dpr()
 						lpha[j,i] = phase * spiceypy.dpr()
-				if line == "":
-					line = str(llat[j,i])
+				if latitudeLine == "":
+					latitudeLine = str(llat[j,i])
+					longitudeLine = str(llon[j,i])
+					altitudeLine = str(lalt[j,i])
+					emissionLine = str(lemm[j,i])
+					phaseLine = str(lpha[j,i])
+					incidenceLine = str(linc[j,i])
 				else:
-					line = line + "," + str(llat[j,i])
-			print(line, file = outputFile)
+					latitudeLine = latitudeLine + "," + str(llat[j,i])
+					longitudeLine = longitudeLine + "," + str(llon[j,i])
+					altitudeLine = altitudeLine + "," + str(lalt[j,i])
+					emissionLine = emissionLine + "," + str(lemm[j,i])
+					phaseLine = phaseLine + "," + str(lpha[j,i])
+					incidenceLine = incidenceLine + "," + str(linc[j,i])
+			print(latitudeLine, file = latitudeFile)
+			print(longitudeLine, file = longitudeFile)
+			print(altitudeLine, file = altitudeFile)
+			print(emissionLine, file = emissionFile)
+			print(phaseLine, file = phaseFile)
+			print(incidenceLine, file = incidenceFile)
 		
 		# M-band
 		[shape, frame, bsight, nbounds, bounds] = spiceypy.getfov(mbandfrm, 20)
@@ -221,7 +255,12 @@ if numFiles > 0:
 		malt.fill(-1024.0)
 		
 		for i in range(0,128):
-			line = ""
+			latitudeLine = ""
+			longitudeLine = ""
+			altitudeLine = ""
+			emissionLine = ""
+			phaseLine = ""
+			incidenceLine = ""
 			for j in range(0,432):
 				dvec=[yp[i],xp[j],zp]
 				with spiceypy.no_found_check():
@@ -230,22 +269,46 @@ if numFiles > 0:
 						[loni, lati, alti] = spiceypy.recpgr(target, spoint, radii[0], (radii[0]-radii[2])/radii[0])
 						mlon[j,i] = loni * spiceypy.dpr()
 						mlat[j,i] = lati * spiceypy.dpr()
-						malt[j,i] = alti
+						malt[j,i] = spiceypy.vnorm( srfvec )
 						[trgepc, srfvec, phase, solar, emissn] = spiceypy.ilumin(method2,target, etStart, tarfrm, abcorr, scname, spoint)
 						minc[j,i] = solar * spiceypy.dpr()
 						mema[j,i] = emissn * spiceypy.dpr()
 						mpha[j,i] = phase * spiceypy.dpr()
-				if line == "":
-					line = str(mlat[j,i])
+				if latitudeLine == "":
+					latitudeLine = str(llat[j,i])
+					longitudeLine = str(llon[j,i])
+					altitudeLine = str(lalt[j,i])
+					emissionLine = str(lemm[j,i])
+					phaseLine = str(lpha[j,i])
+					incidenceLine = str(linc[j,i])
 				else:
-					line = line + "," + str(mlat[j,i])
-			print(line, file = outputFile)
+					latitudeLine = latitudeLine + "," + str(mlat[j,i])
+					longitudeLine = longitudeLine + "," + str(mlon[j,i])
+					altitudeLine = altitudeLine + "," + str(malt[j,i])
+					emissionLine = emissionLine + "," + str(mema[j,i])
+					phaseLine = phaseLine + "," + str(mpha[j,i])
+					incidenceLine = incidenceLine + "," + str(minc[j,i])
+			print(latitudeLine, file = latitudeFile)
+			print(longitudeLine, file = longitudeFile)
+			print(altitudeLine, file = altitudeFile)
+			print(emissionLine, file = emissionFile)
+			print(phaseLine, file = phaseFile)
+			print(incidenceLine, file = incidenceFile)
 		
 		
-		outputFile.close()
+		latitudeFile.close()
+		longitudeFile.close()
+		altitudeFile.close()
+		emissionFile.close()
+		phaseFile.close()
+		incidenceFile.close()
 
 spiceypy.unload( metakr )
 spiceypy.unload( 'io_north_pole.bsp' )
 
 # ascii2isis from=JIR_IMG_RDR_2021052T110632_V01.csv to=JIR_IMG_RDR_2021052T110632_V01.latstart.cub order=bsq samples=432 lines=256 bands=1 skip=0 setnullrange=yes nullmin=-2000 nullmax=-1000
 # handmos from=JIR_IMG_RDR_2021052T110632_V01.latstart.cub mosaic=JIR_IMG_RDR_2021052T110632_V01.mirror.cub outband=2 null=true
+# ascii2isis from=JIR_IMG_RDR_2021052T110632_V01_latitude.csv to=JIR_IMG_RDR_2021052T110632_V01.latitude.cub order=bsq samples=432 lines=256 bands=1 skip=0 setnullrange=yes nullmin=-2000 nullmax=-1000
+# ascii2isis from=JIR_IMG_RDR_2021052T110632_V01_longitude.csv to=JIR_IMG_RDR_2021052T110632_V01.longitude.cub order=bsq samples=432 lines=256 bands=1 skip=0 setnullrange=yes nullmin=-2000 nullmax=-1000
+# ascii2isis from=JIR_IMG_RDR_2021052T110632_V01_emission.csv to=JIR_IMG_RDR_2021052T110632_V01.emission.cub order=bsq samples=432 lines=256 bands=1 skip=0 setnullrange=yes nullmin=-2000 nullmax=-1000
+# ascii2isis from=JIR_IMG_RDR_2021052T110632_V01_altitude.csv to=JIR_IMG_RDR_2021052T110632_V01.altitude.cub order=bsq samples=432 lines=256 bands=1 skip=0 setnullrange=yes nullmin=-2000 nullmax=-1000
