@@ -25,7 +25,9 @@ tarfrm = 'IAU_IO'
 abcorr = 'LT+S'
 jrmfrm = 'JUNO_JIRAM_I'
 lbandfrm = -61411
+lbndnm = 'JUNO_JIRAM_I_LBAND'
 mbandfrm = -61412
+mbndnm = 'JUNO_JIRAM_I_MBAND'
 jirmid = -61410
 
 
@@ -108,6 +110,8 @@ spiceypy.furnsh( 'io_north_pole.bsp' )
 
 inputFiles = fd.askopenfilenames(title='Select Labels', filetypes=(('PDS Labels', '*.LBL'), ('All files', '*.*')))
 numFiles = len(inputFiles)
+offsetFile = fd.askopenfilename(title='Select Offset CSV', filetypes=(('CSV Files', '*.LBL'), ('All files', '*.*')))
+numOffsetFile = len(offsetFile)
 
 if numFiles > 0:
 	for file in inputFiles:
@@ -140,7 +144,7 @@ if numFiles > 0:
 		
 		# calculate center spice pixel
 		# obtain cartesian coordinates for sub-spacecraft point at the time of closest approach
-		[spoint, trgepc, srfvec] = spiceypy.subpnt( method, target, et, tarfrm, abcorr, scname )
+		[spoint, trgepc, srfvec] = spiceypy.subpnt( method, target, etStart, tarfrm, abcorr, scname )
 		
 		# get radii of Io from spice
 		[num, radii] = spiceypy.bodvrd(target, 'RADII', 3)
@@ -160,12 +164,18 @@ if numFiles > 0:
 		
 		print(lat,lon)
 		
-		[pos,ltime] = spiceypy.spkpos(target, et, jrmfrm, abcorr, scname)
-		print(pos)
+		lvisibl = spiceypy.fovtrg(lbndnm, target, method2, tarfrm, abcorr, scname, etStart)
+		mvisibl = spiceypy.fovtrg(mbndnm, target, method2, tarfrm, abcorr, scname, etStart)
+		print(lvisibl)
+		print(mvisibl)
+		
+		[lpos,ltime] = spiceypy.spkpos(target, etStart, 'JUNO_JIRAM_I_LBAND', abcorr, scname)
+		print(lpos)
+		[mpos,mtime] = spiceypy.spkpos(target, etStart, 'JUNO_JIRAM_I_MBAND', abcorr, scname)
+		print(mpos)
 		
 		# L-band
 		[shape, frame, bsight, nbounds, bounds] = spiceypy.getfov(lbandfrm, 20)
-		
 		
 		dy = np.abs((bounds[0,0]-bounds[2,0]) / 128)
 		dx = np.abs((bounds[0,1]-bounds[2,1]) / 432)
