@@ -32,12 +32,8 @@ jirmid = -61410
 
 
 # various parameters for the script
-adjust = 0.0
 method = 'Intercept/Ellipsoid'
 method2 = 'ELLIPSOID'
-maxivl = 1000
-maxwin = 2 * maxivl
-relate = 'ABSMIN'
 tdbfmt = 'YYYY MON DD HR:MN:SC.### TDB ::TDB'
 xlsxmt = 'MM/DD/YYYY HR:MN:SC.###'
 useLabel = False
@@ -144,7 +140,8 @@ if numFiles > 0:
 		
 		# calculate center spice pixel
 		# obtain cartesian coordinates for sub-spacecraft point at the time of closest approach
-		[spoint, trgepc, srfvec] = spiceypy.subpnt( method, target, etStart, tarfrm, abcorr, scname )
+		[spoint, trgepc, subsrfvec] = spiceypy.subpnt( method, target, etStart, tarfrm, abcorr, scname )
+		print(subsrfvec)
 		
 		# get radii of Io from spice
 		[num, radii] = spiceypy.bodvrd(target, 'RADII', 3)
@@ -164,16 +161,6 @@ if numFiles > 0:
 		
 		print(lat,lon)
 		
-		lvisibl = spiceypy.fovtrg(lbndnm, target, method2, tarfrm, abcorr, scname, etStart)
-		mvisibl = spiceypy.fovtrg(mbndnm, target, method2, tarfrm, abcorr, scname, etStart)
-		print(lvisibl)
-		print(mvisibl)
-		
-		[lpos,ltime] = spiceypy.spkpos(target, etStart, 'JUNO_JIRAM_I_LBAND', abcorr, scname)
-		print(lpos)
-		[mpos,mtime] = spiceypy.spkpos(target, etStart, 'JUNO_JIRAM_I_MBAND', abcorr, scname)
-		print(mpos)
-		
 		# L-band
 		[shape, frame, bsight, nbounds, bounds] = spiceypy.getfov(lbandfrm, 20)
 		
@@ -183,6 +170,20 @@ if numFiles > 0:
 		xp = np.arange(0.5,431.51,1)*dx + bounds[3,1]
 		yp = bounds[3,0] - np.arange(0.5,127.51,1)*dy
 		zp = bounds[0,2]
+		
+		# calculate center pixel
+		xform = spiceypy.pxfrm2(tarfrm, lbndnm, trgepc, etStart)
+		lbandsubvec = spiceypy.mxv(xform, subsrfvec)
+		lbandsubvec[0] = lbandsubvec[0] / lbandsubvec[2]
+		lbandsubvec[1] = lbandsubvec[1] / lbandsubvec[2]
+		lbandsubvec[2] = lbandsubvec[2] / lbandsubvec[2]
+		centerX = lbandsubvec[1] - bounds[3,1]
+		centerX /= dx
+		centerY = lbandsubvec[0] - bounds[3,0]
+		centerY /= dx
+		centerY *= -1
+		print(centerX)
+		print(centerY)
 		
 		# initialize the arrays for different backplanes
 		llon = np.zeros([432,128])
@@ -249,6 +250,21 @@ if numFiles > 0:
 		xp = np.arange(0.5,431.51,1)*dx + bounds[3,1]
 		yp = bounds[3,0] - np.arange(0.5,127.51,1)*dy
 		zp = bounds[0,2]
+		
+		# calculate center pixel
+		xform = spiceypy.pxfrm2(tarfrm, mbndnm, trgepc, etStart)
+		mbandsubvec = spiceypy.mxv(xform, subsrfvec)
+		mbandsubvec[0] = mbandsubvec[0] / mbandsubvec[2]
+		mbandsubvec[1] = mbandsubvec[1] / mbandsubvec[2]
+		mbandsubvec[2] = mbandsubvec[2] / mbandsubvec[2]
+		centerX = mbandsubvec[1] - bounds[3,1]
+		centerX /= dx
+		centerY = mbandsubvec[0] - bounds[3,0]
+		centerY /= dx
+		centerY *= -1
+		centerY += 128
+		print(centerX)
+		print(centerY)
 		
 		# initialize the arrays for different backplanes
 		mlon = np.zeros([432,128])
