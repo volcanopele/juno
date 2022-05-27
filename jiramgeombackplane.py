@@ -1,7 +1,6 @@
 from __future__ import print_function
 from builtins import input
 import math
-import spiceypy.utils.support_types as stypes
 import spiceypy
 from tkinter import filedialog as fd
 import tkinter as tk
@@ -16,7 +15,28 @@ import kalasiris as isis
 # Outputting test.csv with geometric information for each frame
 ###
 
-# initialize variables
+###################################
+###### LICENSE AND COPYRIGHT ######
+###################################
+
+# Copyright (C) 2020–2022 Arizona Board of Regents on behalf of the Planetary
+# Image Research Laboratory, Lunar and Planetary Laboratory at the
+# University of Arizona.
+#
+# Licensed under the Apache License, Version 2.0 (the "License"); you may not use
+# this file except in compliance with the License. You may obtain a copy of the
+# License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software distributed
+# under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
+# CONDITIONS OF ANY KIND, either express or implied. See the License for the
+# specific language governing permissions and limitations under the License.
+
+#######################
+###### VARIABLES ######
+#######################
 
 metakr = '/Users/perry/Dropbox/Io/Juno/kernels/juno_latest.tm'
 sclkid = -61
@@ -224,6 +244,7 @@ if numFiles > 0:
 		zp = bounds[0,2]
 		
 		# initialize the arrays for different backplanes
+		# don't even really need this!!!
 		llon = np.zeros([432,128])
 		llon.fill(-1024.0)
 		llat = np.zeros([432,128])
