@@ -72,6 +72,8 @@ lbandfrm = -61411
 lbndnm = 'JUNO_JIRAM_I_LBAND'
 mbandfrm = -61412
 mbndnm = 'JUNO_JIRAM_I_MBAND'
+specfrm = -61420
+specnm = 'JUNO_JIRAM_S'
 
 # various parameters for the script
 method = 'Intercept/Ellipsoid'
@@ -449,6 +451,15 @@ if numFiles > 0:
 			filterWidth = 290
 			naifCode = lbandfrm
 			samples = 432
+		elif dataType == 'SPECTRAL':
+			image = fileBase + '.DAT'
+			pixelUnit = 'W/(m^2*sr*micron)'
+			filters = 'SPECTROMETER'
+			filterName = 'SPECTROMETER'
+			filterCenter = 3500
+			filterWidth = 1500
+			naifCode = specfrm
+			samples = 336
 			
 		if os.path.exists(image):
 			imageCub = fileBase + '.cub'
