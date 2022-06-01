@@ -15,3 +15,8 @@ generates geometry information for the middle image of a given set of JIRAM labe
 ### jiramgeometrycsv.py
 Similar to junogeometryinfo.py but instead of providing information for one time, this script generates a CSV file with geometry information for all the selected images
 
+### jiramgeombackplane.py
+Generates geometry and illumination backplanes for JIRAM images. Also generates ISIS cube files containing the JIRAM image and those backplanes as separate bands
+
+### jiram_display.py
+Interactive display of JIRAM images in python (supports imager and spectrometer data)

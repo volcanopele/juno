@@ -8,18 +8,39 @@ import os, sys, getopt
 import numpy as np
 import kalasiris as isis
 
-###
-# This script takes a time in UTC as input (either directly or via JIRAM 
-# label file(s)) from the user
-# It outputs geometry information for Juno WRT Io at that time
-# Outputting test.csv with geometric information for each frame
-###
+
+####################
+###### README ######
+####################
+
+
+# This script takes a JIRAM label file or files and calculates the viewing and 
+# illumination geometries for each pixel in the image associated with that 
+# JIRAM file. This script exports that information as a set of CSV files, 
+# where each pixel is represented by the appropriate value (latitude, 
+# longitude, altitude, phase angle, incidence angle, and emission angle). An 
+# ISIS cube file is also exported, containing a band for each of these values
+# as well as one for the original image file.
+
+# To run this script, ISIS 7.0.0 is required. Installation instructions are 
+# available at: https://github.com/USGS-Astrogeology/ISIS3#installation
+# The kalasiris python module is also required to generate ISIS cube files.
+# It is not part of the standard ISIS installation. With the isis conda 
+# environment active, run:
+
+# conda install kalasiris
+
+# this will add kalasiris to the isis conda environment. Kalasiris is a python
+# wrapper for ISIS. Alternatively, if cubes files are not needed, you can 
+# delete or comment out the Cube generation section (from the Cube generation
+# header to the spiceypy.unload call at the very end of the script)
+
 
 ###################################
 ###### LICENSE AND COPYRIGHT ######
 ###################################
 
-# Copyright (C) 2020–2022 Arizona Board of Regents on behalf of the Planetary
+# Copyright (C) 2022 Arizona Board of Regents on behalf of the Planetary
 # Image Research Laboratory, Lunar and Planetary Laboratory at the
 # University of Arizona.
 #
@@ -38,19 +59,19 @@ import kalasiris as isis
 ###### VARIABLES ######
 #######################
 
+# edit metakr to point to your Juno metakernel
 metakr = '/Users/perry/Dropbox/Io/Juno/kernels/juno_latest.tm'
 sclkid = -61
 scname = 'JUNO'
 target = 'IO'
 tarfrm = 'IAU_IO'
 abcorr = 'LT+S'
+jirmid = -61410
 jrmfrm = 'JUNO_JIRAM_I'
 lbandfrm = -61411
 lbndnm = 'JUNO_JIRAM_I_LBAND'
 mbandfrm = -61412
 mbndnm = 'JUNO_JIRAM_I_MBAND'
-jirmid = -61410
-
 
 # various parameters for the script
 method = 'Intercept/Ellipsoid'
@@ -98,6 +119,12 @@ def fileParse(inputs):
 			productCreates = productCreate.split(" ")
 			productCreates = sorted(productCreates, reverse=True)
 			productCreate = productCreates[2]
+		elif 'STANDARD_DATA_PRODUCT_ID' in line:
+			dataType = line
+			dataTypes = dataType.split(" ")
+			dataTypes = sorted(dataTypes, reverse=True)
+			dataType = dataTypes[2]
+			dataType = dataType.split('"')[1]
 		elif 'SEQUENCE_NUMBER' in line:
 			sequenceNum = line
 			sequenceNums = sequenceNum.split(" ")
@@ -130,7 +157,7 @@ def fileParse(inputs):
 	file.close()
 	
 	# tuple with image mid-time, product ID, and orbit output by function
-	return [et, productID, orbit, etStart, exposureTime, startTime, productCreate, sequenceNum, sequenceSam]
+	return [et, productID, orbit, etStart, exposureTime, startTime, productCreate, sequenceNum, sequenceSam, dataType]
 
 ####################
 ### SCRIPT START ###
@@ -160,6 +187,7 @@ if numFiles > 0:
 		productCreate = parseTuple[6]
 		sequenceNum = parseTuple[7]
 		sequenceSam = parseTuple[8]
+		dataType = parseTuple[9]
 		
 		# setup output files
 		# first generate the file names for each parameter CSV file
@@ -407,14 +435,27 @@ if numFiles > 0:
 		phaseFile.close()
 		incidenceFile.close()
 		
+		##################################
+		######## CUBE GENERATION #########
+		##################################
+		
 		# time to merge some of these products into ISIS files if the original image exists
-		image = fileBase + '.IMG'
+		if dataType == 'IMAGE':
+			image = fileBase + '.IMG'
+			pixelUnit = 'W/(m^2*sr)'
+			filters = 'L-BAND M-BAND'
+			filterName = 'L-BAND'
+			filterCenter = 3455
+			filterWidth = 290
+			naifCode = lbandfrm
+			samples = 432
+			
 		if os.path.exists(image):
 			imageCub = fileBase + '.cub'
 			mirrorCub = fileBase + '.mirror.cub'
 		
 			# convert IMG to ISIS cube and mirror it (to match geometry)
-			isis.raw2isis(from_=image, to_=imageCub, samples_=432, lines_=256, bands_=1, bittype_="REAL")
+			isis.raw2isis(from_=image, to_=imageCub, samples_=samples, lines_=256, bands_=1, bittype_="REAL")
 			isis.mirror(from_=imageCub, to_=mirrorCub)
 		
 			# add labels to the image file
@@ -443,8 +484,8 @@ if numFiles > 0:
 			isis.editlab(from_=mirrorCub, option="addkey", grpname="Archive", keyword="ExposureTimestamp", value=sclkStart)
 			isis.editlab(from_=mirrorCub, option="addkey", grpname="Archive", keyword="IFOV", value="2.378e-004")
 			isis.editlab(from_=mirrorCub, option="addkey", grpname="Archive", keyword="IFOVUnit", value="rad/px")
-			isis.editlab(from_=mirrorCub, option="addkey", grpname="Archive", keyword="PixelUnit", value="W/(m^2*sr)")
-			isis.editlab(from_=mirrorCub, option="addkey", grpname="Archive", keyword="FiltersAvailable", value="L-BAND M-BAND")
+			isis.editlab(from_=mirrorCub, option="addkey", grpname="Archive", keyword="PixelUnit", value=pixelUnit)
+			isis.editlab(from_=mirrorCub, option="addkey", grpname="Archive", keyword="FiltersAvailable", value=filters)
 			isis.editlab(from_=mirrorCub, option="addkey", grpname="Archive", keyword="FocalLengthUnit", value="M")
 			isis.editlab(from_=mirrorCub, option="addkey", grpname="Archive", keyword="InstrumentType", value="INFRARED IMAGING SPECTROMETER")
 			isis.editlab(from_=mirrorCub, option="addkey", grpname="Archive", keyword="DetectorDescription", value="2D Array")
@@ -454,75 +495,76 @@ if numFiles > 0:
 			isis.editlab(from_=mirrorCub, option="addkey", grpname="Archive", keyword="PixelWidthUnit", value="MICRON")
 			isis.editlab(from_=mirrorCub, option="addkey", grpname="Archive", keyword="OrbitNumber", value=orbit)
 			isis.editlab(from_=mirrorCub, opt_="addg", grpname_="BandBin")
-			isis.editlab(from_=mirrorCub, option="addkey", grpname="BandBin", keyword="FilterName", value="L-BAND")
-			isis.editlab(from_=mirrorCub, option="addkey", grpname="BandBin", keyword="Center", value=3455)
-			isis.editlab(from_=mirrorCub, option="addkey", grpname="BandBin", keyword="Width", value=290)
-			isis.editlab(from_=mirrorCub, option="addkey", grpname="BandBin", keyword="NaifIkCode", value=lbandfrm)
+			isis.editlab(from_=mirrorCub, option="addkey", grpname="BandBin", keyword="FilterName", value=filterName)
+			isis.editlab(from_=mirrorCub, option="addkey", grpname="BandBin", keyword="Center", value=filterCenter)
+			isis.editlab(from_=mirrorCub, option="addkey", grpname="BandBin", keyword="Width", value=filterWidth)
+			isis.editlab(from_=mirrorCub, option="addkey", grpname="BandBin", keyword="NaifIkCode", value=naifCode)
 		
 			# convert latitude file to cube
 			latitudeFile = fileBase + '_latitude.csv'
 			latitudeCube = fileBase + '.latitude.cub'
-			isis.ascii2isis(from_=latitudeFile, to_=latitudeCube, order_="bsq", samples_=432, lines_=256, bands_=1, skip_=0, setnullrange_="true", nullmin_=-2000, nullmax_=-1000)
+			isis.ascii2isis(from_=latitudeFile, to_=latitudeCube, order_="bsq", samples_=samples, lines_=256, bands_=1, skip_=0, setnullrange_="true", nullmin_=-2000, nullmax_=-1000)
 			isis.editlab(from_=latitudeCube, opt_="addg", grpname_="BandBin")
 			isis.editlab(from_=latitudeCube, option="addkey", grpname="BandBin", keyword="FilterName", value="Latitude")
-			isis.editlab(from_=latitudeCube, option="addkey", grpname="BandBin", keyword="Center", value=3455)
-			isis.editlab(from_=latitudeCube, option="addkey", grpname="BandBin", keyword="Width", value=290)
-			isis.editlab(from_=latitudeCube, option="addkey", grpname="BandBin", keyword="NaifIkCode", value=lbandfrm)
+			isis.editlab(from_=latitudeCube, option="addkey", grpname="BandBin", keyword="Center", value=filterCenter)
+			isis.editlab(from_=latitudeCube, option="addkey", grpname="BandBin", keyword="Width", value=filterWidth)
+			isis.editlab(from_=latitudeCube, option="addkey", grpname="BandBin", keyword="NaifIkCode", value=naifCode)
 		
 			# convert longitude file to cube
 			longitudeFile = fileBase + '_longitude.csv'
 			longitudeCube = fileBase + '.longitude.cub'
-			isis.ascii2isis(from_=longitudeFile, to_=longitudeCube, order_="bsq", samples_=432, lines_=256, bands_=1, skip_=0, setnullrange_="true", nullmin_=-2000, nullmax_=-1000)
+			isis.ascii2isis(from_=longitudeFile, to_=longitudeCube, order_="bsq", samples_=samples, lines_=256, bands_=1, skip_=0, setnullrange_="true", nullmin_=-2000, nullmax_=-1000)
 			isis.editlab(from_=longitudeCube, opt_="addg", grpname_="BandBin")
 			isis.editlab(from_=longitudeCube, option="addkey", grpname="BandBin", keyword="FilterName", value="Longitude")
-			isis.editlab(from_=longitudeCube, option="addkey", grpname="BandBin", keyword="Center", value=3455)
-			isis.editlab(from_=longitudeCube, option="addkey", grpname="BandBin", keyword="Width", value=290)
-			isis.editlab(from_=longitudeCube, option="addkey", grpname="BandBin", keyword="NaifIkCode", value=lbandfrm)
+			isis.editlab(from_=longitudeCube, option="addkey", grpname="BandBin", keyword="Center", value=filterCenter)
+			isis.editlab(from_=longitudeCube, option="addkey", grpname="BandBin", keyword="Width", value=filterWidth)
+			isis.editlab(from_=longitudeCube, option="addkey", grpname="BandBin", keyword="NaifIkCode", value=naifCode)
 		
 			# convert altitude file to cube
 			altitudeFile = fileBase + '_altitude.csv'
 			altitudeCube = fileBase + '.altitude.cub'
-			isis.ascii2isis(from_=altitudeFile, to_=altitudeCube, order_="bsq", samples_=432, lines_=256, bands_=1, skip_=0, setnullrange_="true", nullmin_=-2000, nullmax_=-1000)
+			isis.ascii2isis(from_=altitudeFile, to_=altitudeCube, order_="bsq", samples_=samples, lines_=256, bands_=1, skip_=0, setnullrange_="true", nullmin_=-2000, nullmax_=-1000)
 			isis.editlab(from_=altitudeCube, opt_="addg", grpname_="BandBin")
 			isis.editlab(from_=altitudeCube, option="addkey", grpname="BandBin", keyword="FilterName", value="Altitude")
-			isis.editlab(from_=altitudeCube, option="addkey", grpname="BandBin", keyword="Center", value=3455)
-			isis.editlab(from_=altitudeCube, option="addkey", grpname="BandBin", keyword="Width", value=290)
-			isis.editlab(from_=altitudeCube, option="addkey", grpname="BandBin", keyword="NaifIkCode", value=lbandfrm)
+			isis.editlab(from_=altitudeCube, option="addkey", grpname="BandBin", keyword="Center", value=filterCenter)
+			isis.editlab(from_=altitudeCube, option="addkey", grpname="BandBin", keyword="Width", value=filterWidth)
+			isis.editlab(from_=altitudeCube, option="addkey", grpname="BandBin", keyword="NaifIkCode", value=naifCode)
 		
 			# convert emission file to cube
 			emissionFile = fileBase + '_emission.csv'
 			emissionCube = fileBase + '.emission.cub'
-			isis.ascii2isis(from_=emissionFile, to_=emissionCube, order_="bsq", samples_=432, lines_=256, bands_=1, skip_=0, setnullrange_="true", nullmin_=-2000, nullmax_=-1000)
+			isis.ascii2isis(from_=emissionFile, to_=emissionCube, order_="bsq", samples_=samples, lines_=256, bands_=1, skip_=0, setnullrange_="true", nullmin_=-2000, nullmax_=-1000)
 			isis.editlab(from_=emissionCube, opt_="addg", grpname_="BandBin")
 			isis.editlab(from_=emissionCube, option="addkey", grpname="BandBin", keyword="FilterName", value="Emission Angle")
-			isis.editlab(from_=emissionCube, option="addkey", grpname="BandBin", keyword="Center", value=3455)
-			isis.editlab(from_=emissionCube, option="addkey", grpname="BandBin", keyword="Width", value=290)
-			isis.editlab(from_=emissionCube, option="addkey", grpname="BandBin", keyword="NaifIkCode", value=lbandfrm)
+			isis.editlab(from_=emissionCube, option="addkey", grpname="BandBin", keyword="Center", value=filterCenter)
+			isis.editlab(from_=emissionCube, option="addkey", grpname="BandBin", keyword="Width", value=filterWidth)
+			isis.editlab(from_=emissionCube, option="addkey", grpname="BandBin", keyword="NaifIkCode", value=naifCode)
 		
 			# convert incidence file to cube
 			incidenceFile = fileBase + '_incidence.csv'
 			incidenceCube = fileBase + '.incidence.cub'
-			isis.ascii2isis(from_=incidenceFile, to_=incidenceCube, order_="bsq", samples_=432, lines_=256, bands_=1, skip_=0, setnullrange_="true", nullmin_=-2000, nullmax_=-1000)
+			isis.ascii2isis(from_=incidenceFile, to_=incidenceCube, order_="bsq", samples_=samples, lines_=256, bands_=1, skip_=0, setnullrange_="true", nullmin_=-2000, nullmax_=-1000)
 			isis.editlab(from_=incidenceCube, opt_="addg", grpname_="BandBin")
 			isis.editlab(from_=incidenceCube, option="addkey", grpname="BandBin", keyword="FilterName", value="Incidence Angle")
-			isis.editlab(from_=incidenceCube, option="addkey", grpname="BandBin", keyword="Center", value=3455)
-			isis.editlab(from_=incidenceCube, option="addkey", grpname="BandBin", keyword="Width", value=290)
-			isis.editlab(from_=incidenceCube, option="addkey", grpname="BandBin", keyword="NaifIkCode", value=lbandfrm)
+			isis.editlab(from_=incidenceCube, option="addkey", grpname="BandBin", keyword="Center", value=filterCenter)
+			isis.editlab(from_=incidenceCube, option="addkey", grpname="BandBin", keyword="Width", value=filterWidth)
+			isis.editlab(from_=incidenceCube, option="addkey", grpname="BandBin", keyword="NaifIkCode", value=naifCode)
 		
 			# convert phase file to cube
 			phaseFile = fileBase + '_phase.csv'
 			phaseCube = fileBase + '.phase.cub'
-			isis.ascii2isis(from_=phaseFile, to_=phaseCube, order_="bsq", samples_=432, lines_=256, bands_=1, skip_=0, setnullrange_="true", nullmin_=-2000, nullmax_=-1000)
+			isis.ascii2isis(from_=phaseFile, to_=phaseCube, order_="bsq", samples_=samples, lines_=256, bands_=1, skip_=0, setnullrange_="true", nullmin_=-2000, nullmax_=-1000)
 			isis.editlab(from_=phaseCube, opt_="addg", grpname_="BandBin")
 			isis.editlab(from_=phaseCube, option="addkey", grpname="BandBin", keyword="FilterName", value="Phase Angle")
-			isis.editlab(from_=phaseCube, option="addkey", grpname="BandBin", keyword="Center", value=3455)
-			isis.editlab(from_=phaseCube, option="addkey", grpname="BandBin", keyword="Width", value=290)
-			isis.editlab(from_=phaseCube, option="addkey", grpname="BandBin", keyword="NaifIkCode", value=lbandfrm)
+			isis.editlab(from_=phaseCube, option="addkey", grpname="BandBin", keyword="Center", value=filterCenter)
+			isis.editlab(from_=phaseCube, option="addkey", grpname="BandBin", keyword="Width", value=filterWidth)
+			isis.editlab(from_=phaseCube, option="addkey", grpname="BandBin", keyword="NaifIkCode", value=naifCode)
 		
 			# create merged product
 			fromlist_path = isis.fromlist.make([mirrorCub, latitudeCube, longitudeCube, altitudeCube, phaseCube, incidenceCube, emissionCube])
 			geomCub = fileBase + '.geom.cub'
 			isis.cubeit(fromlist=fromlist_path, to_=geomCub, proplab_=mirrorCub)
-		
+			
 
 spiceypy.unload( metakr )
+# END
