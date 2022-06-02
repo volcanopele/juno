@@ -161,15 +161,12 @@ def fileParse(inputs):
 	# tuple with image mid-time, product ID, and orbit output by function
 	return [et, productID, orbit, etStart, exposureTime, startTime, productCreate, sequenceNum, sequenceSam, dataType]
 
-def concatenate(lbandfile, mbandfile, concatfile):
-	filenames = [lbandfile, mbandfile]
-	with open(concatfile, 'w') as outfile:
-		for fname in filenames:
-			with open(fname) as infile:
-				for line in infile:
-					outfile.write(line)
-					
-def backplanegen(frmcode, subsrfvec, derivedX, derivedY, latitudeFile, longitudeFile, altitudeFile, emissionFile, phaseFile, incidenceFile, trgepc, etStart):
+# backplanegen is used on JUNO_JIRAM_I data and generates CSV files containing
+# geometric and illumination information for each pixel. The files generated are: 
+# latitude, longitude, altitude (distance to the intercept point), incidence 
+# angle, phase angle, and emission angle
+
+def backplanegen(frmcode, derivedX, derivedY, trgepc):
 	[shape, frame, bsight, nbounds, bounds] = spiceypy.getfov(frmcode, 20)
 	
 	# calculation of the IFOV
@@ -233,7 +230,9 @@ def backplanegen(frmcode, subsrfvec, derivedX, derivedY, latitudeFile, longitude
 		phaseLine = ""
 		incidenceLine = ""
 		for j in range(0,432):
+			# vector for pixel in radians
 			dvec=[yp[i],xp[j],zp]
+			# ensures the script won't break on pixels that don't intersect Io
 			with spiceypy.no_found_check():
 				[spoint, trgepc, srfvec, found] = spiceypy.sincpt(method2, target, etStart, tarfrm, abcorr, scname, frame, dvec)
 				if found:
@@ -245,6 +244,7 @@ def backplanegen(frmcode, subsrfvec, derivedX, derivedY, latitudeFile, longitude
 					inc = solar * spiceypy.dpr()
 					ema = emissn * spiceypy.dpr()
 					pha = phase * spiceypy.dpr()
+				# if pixel doesn't intersect Io, a default value of -1024.0 is used
 				else:
 					lon = -1024.0
 					lat = -1024.0
@@ -252,6 +252,8 @@ def backplanegen(frmcode, subsrfvec, derivedX, derivedY, latitudeFile, longitude
 					inc = -1024.0
 					ema = -1024.0
 					pha = -1024.0
+			# a very verbose method of generating a CSV file, but the numpy savetxt method had 
+			# issues with merging two of them
 			if latitudeLine == "":
 				latitudeLine = str(lat)
 				longitudeLine = str(lon)
@@ -274,7 +276,85 @@ def backplanegen(frmcode, subsrfvec, derivedX, derivedY, latitudeFile, longitude
 		print(phaseLine, file = phaseFile)
 		print(incidenceLine, file = incidenceFile)
 
-def backplanecubegen(fileBase, backplane, bpName, filterCenter, filterWidth, naifCode, samples):
+# specbackplanegen is used on JUNO_JIRAM_S data and generates CSV files containing
+# geometric and illumination information for each pixel. The files generated are: 
+# latitude, longitude, altitude (distance to the intercept point), incidence 
+# angle, phase angle, and emission angle
+
+def specbackplanegen():
+	[shape, frame, bsight, nbounds, bounds] = spiceypy.getfov(specfrm, 20)
+	
+	# calculation of the IFOV
+	dx = np.abs((bounds[0,1]-bounds[2,1]) / 256)
+	
+	# IFOV from the IK
+	# for now using this, but I can commment this out
+	dx = 0.000237767
+	
+	# generate numpy arrays of radian pixel locations for x
+	# sensor array has 1 spatial and 1 spectral dimension, so Y and Z are one value
+	xp = bounds[0,1] - np.arange(0.5,256.5,1)*dx
+	yp = bsight[0]
+	zp = bsight[2]
+	for i in range(0,256):
+		# initialize each line so as to clear the previous line
+		latitudeLine = ""
+		longitudeLine = ""
+		altitudeLine = ""
+		emissionLine = ""
+		phaseLine = ""
+		incidenceLine = ""
+		
+		# vector for pixel in radians
+		dvec=[yp,xp[i],zp]
+		# ensures the script won't break on pixels that don't intersect Io
+		with spiceypy.no_found_check():
+			[spoint, trgepc, srfvec, found] = spiceypy.sincpt(method2, target, etStart, tarfrm, abcorr, scname, frame, dvec)
+			if found:
+				[lon, lat, alti] = spiceypy.recpgr(target, spoint, radii[0], (radii[0]-radii[2])/radii[0])
+				lon = lon * spiceypy.dpr()
+				lat = lat * spiceypy.dpr()
+				alt = spiceypy.vnorm( srfvec )
+				[trgepc, srfvec, phase, solar, emissn] = spiceypy.ilumin(method2, target, etStart, tarfrm, abcorr, scname, spoint)
+				inc = solar * spiceypy.dpr()
+				ema = emissn * spiceypy.dpr()
+				pha = phase * spiceypy.dpr()
+			# if pixel doesn't intersect Io, a default value of -1024.0 is used
+			else:
+				lon = -1024.0
+				lat = -1024.0
+				alt = -1024.0
+				inc = -1024.0
+				ema = -1024.0
+				pha = -1024.0
+		latitudeLine = str(lat)
+		longitudeLine = str(lon)
+		altitudeLine = str(alt)
+		emissionLine = str(ema)
+		phaseLine = str(pha)
+		incidenceLine = str(inc)
+		# each line will have the same geometry values so just repeating this for all pixels in the line
+		for j in range(0,335):
+			latitudeLine = latitudeLine + "," + str(lat)
+			longitudeLine = longitudeLine + "," + str(lon)
+			altitudeLine = altitudeLine + "," + str(alt)
+			emissionLine = emissionLine + "," + str(ema)
+			phaseLine = phaseLine + "," + str(pha)
+			incidenceLine = incidenceLine + "," + str(inc)
+		
+		print(latitudeLine, file = latitudeFile)
+		print(longitudeLine, file = longitudeFile)
+		print(altitudeLine, file = altitudeFile)
+		print(emissionLine, file = emissionFile)
+		print(phaseLine, file = phaseFile)
+		print(incidenceLine, file = incidenceFile)
+	
+# backplanecubegen converts the CSV backplanes generated earlier into ISIS cube files
+# using ascii2isis then adds band information with the name of the backplane parameter
+# as the filter name and the NAIF code and wavelength information for the image.
+# backplanecubegen returns the full path and name of the output cube file
+
+def backplanecubegen(backplane, bpName):
 	csvFile = fileBase + '_' + backplane + '.csv'
 	cubFile = fileBase + '.' + backplane + '.cub'
 	isis.ascii2isis(from_=csvFile, to_=cubFile, order_="bsq", samples_=samples, lines_=256, bands_=1, skip_=0, setnullrange_="true", nullmin_=-2000, nullmax_=-1000)
@@ -292,56 +372,60 @@ def backplanecubegen(fileBase, backplane, bpName, filterCenter, filterWidth, nai
 # initialize spice files
 spiceypy.furnsh( metakr )
 
-# open file dialog. Select one or more label files as input. Hit cancel if you want to 
-# manually input a time
+# open file dialog. Select one or more label files as input.
 
 inputFiles = fd.askopenfilenames(title='Select Labels', filetypes=(('PDS Labels', '*.LBL'), ('All files', '*.*')))
 numFiles = len(inputFiles)
 offsetInput = fd.askopenfilename(title='Select Offset CSV', filetypes=(('CSV Files', '*.csv'), ('All files', '*.*')))
 numOffsetInput = len(offsetInput)
 
-if numFiles > 0:
-	for file in inputFiles:
-		parseTuple = fileParse(file)
-		et = parseTuple[0]
-		timstr = spiceypy.timout( et, xlsxmt )
-		etStart = parseTuple[3]
-		exposureTime = parseTuple[4]
-		sclkStart = parseTuple[5]
-		productID = parseTuple[1]
-		orbit = parseTuple[2]
-		productCreate = parseTuple[6]
-		sequenceNum = parseTuple[7]
-		sequenceSam = parseTuple[8]
-		dataType = parseTuple[9]
-		
-		# setup output files
-		# first generate the file names for each parameter CSV file
-		root = os.path.dirname(file)
-		name = os.path.basename(file)
-		fileBase = root + '/' + productID
-		latitudeFile = fileBase + '_latitude.csv'
-		longitudeFile = fileBase + '_longitude.csv'
-		altitudeFile = fileBase + '_altitude.csv'
-		emissionFile = fileBase + '_emission.csv'
-		incidenceFile = fileBase + '_incidence.csv'
-		phaseFile = fileBase + '_phase.csv'
-		
-		# open each CSV file
-		latitudeFile = open( latitudeFile, 'w' )
-		longitudeFile = open( longitudeFile, 'w' )
-		altitudeFile = open( altitudeFile, 'w' )
-		emissionFile = open( emissionFile, 'w' )
-		incidenceFile = open( incidenceFile, 'w' )
-		phaseFile = open( phaseFile, 'w' )
-		
+if numFiles == 0:
+	sys.exit()
+	
+for file in inputFiles:
+	parseTuple = fileParse(file)
+	et = parseTuple[0]
+	timstr = spiceypy.timout( et, xlsxmt )
+	etStart = parseTuple[3]
+	exposureTime = parseTuple[4]
+	sclkStart = parseTuple[5]
+	productID = parseTuple[1]
+	orbit = parseTuple[2]
+	productCreate = parseTuple[6]
+	sequenceNum = parseTuple[7]
+	sequenceSam = parseTuple[8]
+	dataType = parseTuple[9]
+	
+	# setup output files
+	# first generate the file names for each parameter CSV file
+	root = os.path.dirname(file)
+	name = os.path.basename(file)
+	fileBase = root + '/' + productID
+	latitudeFile = fileBase + '_latitude.csv'
+	longitudeFile = fileBase + '_longitude.csv'
+	altitudeFile = fileBase + '_altitude.csv'
+	emissionFile = fileBase + '_emission.csv'
+	incidenceFile = fileBase + '_incidence.csv'
+	phaseFile = fileBase + '_phase.csv'
+	
+	# open each CSV file
+	latitudeFile = open( latitudeFile, 'w' )
+	longitudeFile = open( longitudeFile, 'w' )
+	altitudeFile = open( altitudeFile, 'w' )
+	emissionFile = open( emissionFile, 'w' )
+	incidenceFile = open( incidenceFile, 'w' )
+	phaseFile = open( phaseFile, 'w' )	
+	
+	# get radii of Io from spice
+	[num, radii] = spiceypy.bodvrd(target, 'RADII', 3)
+	
+	if dataType == 'IMAGE':
 		# obtain cartesian coordinates for sub-spacecraft point at the time of closest approach
 		[spoint, trgepc, subsrfvec] = spiceypy.subpnt( method, target, etStart, tarfrm, abcorr, scname )
-		
-		# get radii of Io from spice
-		[num, radii] = spiceypy.bodvrd(target, 'RADII', 3)
-		
+
 		# obtain derived center pixel from derived file, if available
+		derivedY = ""
+		derivedX = ""
 		if offsetInput != "":
 			offsetFile = open(offsetInput)
 			offsetInfo = offsetFile.readlines()
@@ -352,108 +436,121 @@ if numFiles > 0:
 					derivedY = float(derivedLine[2])
 					break
 			offsetFile.close()
-		else:
-			derivedY = ""
-			derivedX = ""
 		
 		# these two lines actually do all the "real" work of generating backplane CSV files
-		backplanegen(lbandfrm, subsrfvec, derivedX, derivedY, latitudeFile, longitudeFile, altitudeFile, emissionFile, phaseFile, incidenceFile, trgepc, etStart)
-		backplanegen(mbandfrm, subsrfvec, derivedX, derivedY, latitudeFile, longitudeFile, altitudeFile, emissionFile, phaseFile, incidenceFile, trgepc, etStart)
+		backplanegen(lbandfrm, derivedX, derivedY, trgepc)
+		backplanegen(mbandfrm, derivedX, derivedY, trgepc)
+	elif dataType == 'SPECTRAL':
+		specbackplanegen()
+	
+	latitudeFile.close()
+	longitudeFile.close()
+	altitudeFile.close()
+	emissionFile.close()
+	phaseFile.close()
+	incidenceFile.close()
+	
+	##################################
+	######## CUBE GENERATION #########
+	##################################
+	
+	# time to merge some of these products into ISIS files if the original image exists
+	if dataType == 'IMAGE':
+		image = fileBase + '.IMG'
+		pixelUnit = 'W/(m^2*sr)'
+		filters = 'L-BAND M-BAND'
+		filterName = 'L-BAND'
+		filterCenter = 3455
+		filterWidth = 290
+		naifCode = lbandfrm
+		samples = 432
+	elif dataType == 'SPECTRAL':
+		image = fileBase + '.DAT'
+		pixelUnit = 'W/(m^2*sr*micron)'
+		filters = 'SPECTROMETER'
+		filterName = 'SPECTROMETER'
+		filterCenter = 3500
+		filterWidth = 1500
+		naifCode = specfrm
+		samples = 336
 		
-		latitudeFile.close()
-		longitudeFile.close()
-		altitudeFile.close()
-		emissionFile.close()
-		phaseFile.close()
-		incidenceFile.close()
-		
-		##################################
-		######## CUBE GENERATION #########
-		##################################
-		
-		# time to merge some of these products into ISIS files if the original image exists
+	if os.path.exists(image):
+		imageCub = fileBase + '.cub'
+		mirrorCub = fileBase + '.mirror.cub'
+	
+		# convert IMG to ISIS cube and mirror it (to match geometry)
+		isis.raw2isis(from_=image, to_=imageCub, samples_=samples, lines_=256, bands_=1, bittype_="REAL")
 		if dataType == 'IMAGE':
-			image = fileBase + '.IMG'
-			pixelUnit = 'W/(m^2*sr)'
-			filters = 'L-BAND M-BAND'
-			filterName = 'L-BAND'
-			filterCenter = 3455
-			filterWidth = 290
-			naifCode = lbandfrm
-			samples = 432
-		elif dataType == 'SPECTRAL':
-			image = fileBase + '.DAT'
-			pixelUnit = 'W/(m^2*sr*micron)'
-			filters = 'SPECTROMETER'
-			filterName = 'SPECTROMETER'
-			filterCenter = 3500
-			filterWidth = 1500
-			naifCode = specfrm
-			samples = 336
-			
-		if os.path.exists(image):
-			imageCub = fileBase + '.cub'
-			mirrorCub = fileBase + '.mirror.cub'
-		
-			# convert IMG to ISIS cube and mirror it (to match geometry)
-			isis.raw2isis(from_=image, to_=imageCub, samples_=samples, lines_=256, bands_=1, bittype_="REAL")
 			isis.mirror(from_=imageCub, to_=mirrorCub)
+		else:
+			mirrorCub = imageCub
+	
+		# add labels to the image file
+		isis.editlab(from_=mirrorCub, opt_="addg", grpname_="Instrument")
+		isis.editlab(from_=mirrorCub, option="addkey", grpname="Instrument", keyword="SpacecraftName", value=scname)
+		isis.editlab(from_=mirrorCub, option="addkey", grpname="Instrument", keyword="InstrumentId", value="JIR")
+		isis.editlab(from_=mirrorCub, option="addkey", grpname="Instrument", keyword="TargetName", value=target)
+		startDate = spiceypy.timout( etStart, datefmt )
+		startTime = spiceypy.timout( etStart, timefmt )
+		startTime = startDate + "T" + startTime
+		isis.editlab(from_=mirrorCub, option="addkey", grpname="Instrument", keyword="StartTime", value=startTime)
+		isis.editlab(from_=mirrorCub, option="addkey", grpname="Instrument", keyword="SpacecraftClockStartCount", value=sclkStart)
+		isis.editlab(from_=mirrorCub, option="addkey", grpname="Instrument", keyword="ExposureDuration", value=exposureTime)
+		isis.editlab(from_=mirrorCub, opt_="addg", grpname_="Archive")
+		isis.editlab(from_=mirrorCub, option="addkey", grpname="Archive", keyword="DataSetId", value="JNO-J-JIRAM-3-RDR-V1.0")
+		isis.editlab(from_=mirrorCub, option="addkey", grpname="Archive", keyword="ProductVersionId", value='"01"')
+		isis.editlab(from_=mirrorCub, option="addkey", grpname="Archive", keyword="ProducerId", value="ISTITUTO NAZIONALE DI ASTROFISICA")
+		isis.editlab(from_=mirrorCub, option="addkey", grpname="Archive", keyword="ProductId", value=productID)
+		isis.editlab(from_=mirrorCub, option="addkey", grpname="Archive", keyword="ProducerName", value="A.ADRIANI - R.NOSCHESE")
+		isis.editlab(from_=mirrorCub, option="addkey", grpname="Archive", keyword="ProductCreationTime", value=productCreate)
+		isis.editlab(from_=mirrorCub, option="addkey", grpname="Archive", keyword="FileName", value=productID)
+		isis.editlab(from_=mirrorCub, option="addkey", grpname="Archive", keyword="FocalLength", value=0.1583)
+		isis.editlab(from_=mirrorCub, option="addkey", grpname="Archive", keyword="FNumber", value=3.7)	
+		isis.editlab(from_=mirrorCub, option="addkey", grpname="Archive", keyword="SequenceNumber", value=sequenceNum)
+		isis.editlab(from_=mirrorCub, option="addkey", grpname="Archive", keyword="SequenceSample", value=sequenceSam)
+		isis.editlab(from_=mirrorCub, option="addkey", grpname="Archive", keyword="ExposureTimestamp", value=sclkStart)
+		isis.editlab(from_=mirrorCub, option="addkey", grpname="Archive", keyword="IFOV", value="2.378e-004")
+		isis.editlab(from_=mirrorCub, option="addkey", grpname="Archive", keyword="IFOVUnit", value="rad/px")
+		isis.editlab(from_=mirrorCub, option="addkey", grpname="Archive", keyword="PixelUnit", value=pixelUnit)
+		isis.editlab(from_=mirrorCub, option="addkey", grpname="Archive", keyword="FiltersAvailable", value=filters)
+		isis.editlab(from_=mirrorCub, option="addkey", grpname="Archive", keyword="FocalLengthUnit", value="M")
+		isis.editlab(from_=mirrorCub, option="addkey", grpname="Archive", keyword="InstrumentType", value="INFRARED IMAGING SPECTROMETER")
+		isis.editlab(from_=mirrorCub, option="addkey", grpname="Archive", keyword="StandardDataProductID", value=dataType)
+		isis.editlab(from_=mirrorCub, option="addkey", grpname="Archive", keyword="DetectorDescription", value="2D Array")
+		isis.editlab(from_=mirrorCub, option="addkey", grpname="Archive", keyword="PixelHeight", value=38.0)
+		isis.editlab(from_=mirrorCub, option="addkey", grpname="Archive", keyword="PixelHeightUnit", value="MICRON")
+		isis.editlab(from_=mirrorCub, option="addkey", grpname="Archive", keyword="PixelWidth", value=38.0)
+		isis.editlab(from_=mirrorCub, option="addkey", grpname="Archive", keyword="PixelWidthUnit", value="MICRON")
+		isis.editlab(from_=mirrorCub, option="addkey", grpname="Archive", keyword="OrbitNumber", value=orbit)
+		isis.editlab(from_=mirrorCub, opt_="addg", grpname_="BandBin")
+		isis.editlab(from_=mirrorCub, option="addkey", grpname="BandBin", keyword="FilterName", value=filterName)
+		isis.editlab(from_=mirrorCub, option="addkey", grpname="BandBin", keyword="Center", value=filterCenter)
+		isis.editlab(from_=mirrorCub, option="addkey", grpname="BandBin", keyword="Width", value=filterWidth)
+		isis.editlab(from_=mirrorCub, option="addkey", grpname="BandBin", keyword="NaifIkCode", value=naifCode)
 		
-			# add labels to the image file
-			isis.editlab(from_=mirrorCub, opt_="addg", grpname_="Instrument")
-			isis.editlab(from_=mirrorCub, option="addkey", grpname="Instrument", keyword="SpacecraftName", value=scname)
-			isis.editlab(from_=mirrorCub, option="addkey", grpname="Instrument", keyword="InstrumentId", value="JIR")
-			isis.editlab(from_=mirrorCub, option="addkey", grpname="Instrument", keyword="TargetName", value=target)
-			startDate = spiceypy.timout( etStart, datefmt )
-			startTime = spiceypy.timout( etStart, timefmt )
-			startTime = startDate + "T" + startTime
-			isis.editlab(from_=mirrorCub, option="addkey", grpname="Instrument", keyword="StartTime", value=startTime)
-			isis.editlab(from_=mirrorCub, option="addkey", grpname="Instrument", keyword="SpacecraftClockStartCount", value=sclkStart)
-			isis.editlab(from_=mirrorCub, option="addkey", grpname="Instrument", keyword="ExposureDuration", value=exposureTime)
-			isis.editlab(from_=mirrorCub, opt_="addg", grpname_="Archive")
-			isis.editlab(from_=mirrorCub, option="addkey", grpname="Archive", keyword="DataSetId", value="JNO-J-JIRAM-3-RDR-V1.0")
-			isis.editlab(from_=mirrorCub, option="addkey", grpname="Archive", keyword="ProductVersionId", value='"01"')
-			isis.editlab(from_=mirrorCub, option="addkey", grpname="Archive", keyword="ProducerId", value="ISTITUTO NAZIONALE DI ASTROFISICA")
-			isis.editlab(from_=mirrorCub, option="addkey", grpname="Archive", keyword="ProductId", value=productID)
-			isis.editlab(from_=mirrorCub, option="addkey", grpname="Archive", keyword="ProducerName", value="A.ADRIANI - R.NOSCHESE")
-			isis.editlab(from_=mirrorCub, option="addkey", grpname="Archive", keyword="ProductCreationTime", value=productCreate)
-			isis.editlab(from_=mirrorCub, option="addkey", grpname="Archive", keyword="FileName", value=productID)
-			isis.editlab(from_=mirrorCub, option="addkey", grpname="Archive", keyword="FocalLength", value=0.1583)
-			isis.editlab(from_=mirrorCub, option="addkey", grpname="Archive", keyword="FNumber", value=3.7)	
-			isis.editlab(from_=mirrorCub, option="addkey", grpname="Archive", keyword="SequenceNumber", value=sequenceNum)
-			isis.editlab(from_=mirrorCub, option="addkey", grpname="Archive", keyword="SequenceSample", value=sequenceSam)
-			isis.editlab(from_=mirrorCub, option="addkey", grpname="Archive", keyword="ExposureTimestamp", value=sclkStart)
-			isis.editlab(from_=mirrorCub, option="addkey", grpname="Archive", keyword="IFOV", value="2.378e-004")
-			isis.editlab(from_=mirrorCub, option="addkey", grpname="Archive", keyword="IFOVUnit", value="rad/px")
-			isis.editlab(from_=mirrorCub, option="addkey", grpname="Archive", keyword="PixelUnit", value=pixelUnit)
-			isis.editlab(from_=mirrorCub, option="addkey", grpname="Archive", keyword="FiltersAvailable", value=filters)
-			isis.editlab(from_=mirrorCub, option="addkey", grpname="Archive", keyword="FocalLengthUnit", value="M")
-			isis.editlab(from_=mirrorCub, option="addkey", grpname="Archive", keyword="InstrumentType", value="INFRARED IMAGING SPECTROMETER")
-			isis.editlab(from_=mirrorCub, option="addkey", grpname="Archive", keyword="DetectorDescription", value="2D Array")
-			isis.editlab(from_=mirrorCub, option="addkey", grpname="Archive", keyword="PixelHeight", value=38.0)
-			isis.editlab(from_=mirrorCub, option="addkey", grpname="Archive", keyword="PixelHeightUnit", value="MICRON")
-			isis.editlab(from_=mirrorCub, option="addkey", grpname="Archive", keyword="PixelWidth", value=38.0)
-			isis.editlab(from_=mirrorCub, option="addkey", grpname="Archive", keyword="PixelWidthUnit", value="MICRON")
-			isis.editlab(from_=mirrorCub, option="addkey", grpname="Archive", keyword="OrbitNumber", value=orbit)
-			isis.editlab(from_=mirrorCub, opt_="addg", grpname_="BandBin")
-			isis.editlab(from_=mirrorCub, option="addkey", grpname="BandBin", keyword="FilterName", value=filterName)
-			isis.editlab(from_=mirrorCub, option="addkey", grpname="BandBin", keyword="Center", value=filterCenter)
-			isis.editlab(from_=mirrorCub, option="addkey", grpname="BandBin", keyword="Width", value=filterWidth)
-			isis.editlab(from_=mirrorCub, option="addkey", grpname="BandBin", keyword="NaifIkCode", value=naifCode)
-			
-			# generate cubes file sfor each backplane using the backplanecubegen function
-			latitudeCube = backplanecubegen(fileBase, "latitude", "Latitude", filterCenter, filterWidth, naifCode, samples)
-			longitudeCube = backplanecubegen(fileBase, "longitude", "Longitude", filterCenter, filterWidth, naifCode, samples)
-			altitudeCube = backplanecubegen(fileBase, "altitude", "Altitude", filterCenter, filterWidth, naifCode, samples)
-			emissionCube = backplanecubegen(fileBase, "emission", "Emission Angle", filterCenter, filterWidth, naifCode, samples)
-			incidenceCube = backplanecubegen(fileBase, "incidence", "Incidence Angle", filterCenter, filterWidth, naifCode, samples)
-			phaseCube = backplanecubegen(fileBase, "phase", "Phase Angle", filterCenter, filterWidth, naifCode, samples)
-			
-			# create merged product
-			fromlist_path = isis.fromlist.make([mirrorCub, latitudeCube, longitudeCube, altitudeCube, phaseCube, incidenceCube, emissionCube])
-			geomCub = fileBase + '.geom.cub'
-			isis.cubeit(fromlist=fromlist_path, to_=geomCub, proplab_=mirrorCub)
-			
+		# generate cubes file sfor each backplane using the backplanecubegen function
+		latitudeCube = backplanecubegen("latitude", "Latitude")
+		longitudeCube = backplanecubegen("longitude", "Longitude")
+		altitudeCube = backplanecubegen("altitude", "Altitude")
+		emissionCube = backplanecubegen("emission", "Emission Angle")
+		incidenceCube = backplanecubegen("incidence", "Incidence Angle")
+		phaseCube = backplanecubegen("phase", "Phase Angle")
+		
+		# create merged product
+		fromlist_path = isis.fromlist.make([mirrorCub, latitudeCube, longitudeCube, altitudeCube, phaseCube, incidenceCube, emissionCube])
+		geomCub = fileBase + '.geom.cub'
+		isis.cubeit(fromlist=fromlist_path, to_=geomCub, proplab_=mirrorCub)
+		
+		# clean up extraneous cube files
+		os.system(str("/bin/rm " + latitudeCube))
+		os.system(str("/bin/rm " + longitudeCube))
+		os.system(str("/bin/rm " + altitudeCube))
+		os.system(str("/bin/rm " + emissionCube))
+		os.system(str("/bin/rm " + incidenceCube))
+		os.system(str("/bin/rm " + phaseCube))
 
+#############################
+######## SCRIPT END #########
+#############################
 spiceypy.unload( metakr )
-# END
+
