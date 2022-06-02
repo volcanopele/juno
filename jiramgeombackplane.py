@@ -273,7 +273,18 @@ def backplanegen(frmcode, subsrfvec, derivedX, derivedY, latitudeFile, longitude
 		print(emissionLine, file = emissionFile)
 		print(phaseLine, file = phaseFile)
 		print(incidenceLine, file = incidenceFile)
-					
+
+def backplanecubegen(fileBase, backplane, bpName, filterCenter, filterWidth, naifCode, samples):
+	csvFile = fileBase + '_' + backplane + '.csv'
+	cubFile = fileBase + '.' + backplane + '.cub'
+	isis.ascii2isis(from_=csvFile, to_=cubFile, order_="bsq", samples_=samples, lines_=256, bands_=1, skip_=0, setnullrange_="true", nullmin_=-2000, nullmax_=-1000)
+	isis.editlab(from_=cubFile, opt_="addg", grpname_="BandBin")
+	isis.editlab(from_=cubFile, option="addkey", grpname="BandBin", keyword="FilterName", value=bpName)
+	isis.editlab(from_=cubFile, option="addkey", grpname="BandBin", keyword="Center", value=filterCenter)
+	isis.editlab(from_=cubFile, option="addkey", grpname="BandBin", keyword="Width", value=filterWidth)
+	isis.editlab(from_=cubFile, option="addkey", grpname="BandBin", keyword="NaifIkCode", value=naifCode)
+	return cubFile
+	
 ####################
 ### SCRIPT START ###
 ####################
@@ -345,6 +356,7 @@ if numFiles > 0:
 			derivedY = ""
 			derivedX = ""
 		
+		# these two lines actually do all the "real" work of generating backplane CSV files
 		backplanegen(lbandfrm, subsrfvec, derivedX, derivedY, latitudeFile, longitudeFile, altitudeFile, emissionFile, phaseFile, incidenceFile, trgepc, etStart)
 		backplanegen(mbandfrm, subsrfvec, derivedX, derivedY, latitudeFile, longitudeFile, altitudeFile, emissionFile, phaseFile, incidenceFile, trgepc, etStart)
 		
@@ -428,67 +440,15 @@ if numFiles > 0:
 			isis.editlab(from_=mirrorCub, option="addkey", grpname="BandBin", keyword="Center", value=filterCenter)
 			isis.editlab(from_=mirrorCub, option="addkey", grpname="BandBin", keyword="Width", value=filterWidth)
 			isis.editlab(from_=mirrorCub, option="addkey", grpname="BandBin", keyword="NaifIkCode", value=naifCode)
-		
-			# convert latitude file to cube
-			latitudeFile = fileBase + '_latitude.csv'
-			latitudeCube = fileBase + '.latitude.cub'
-			isis.ascii2isis(from_=latitudeFile, to_=latitudeCube, order_="bsq", samples_=samples, lines_=256, bands_=1, skip_=0, setnullrange_="true", nullmin_=-2000, nullmax_=-1000)
-			isis.editlab(from_=latitudeCube, opt_="addg", grpname_="BandBin")
-			isis.editlab(from_=latitudeCube, option="addkey", grpname="BandBin", keyword="FilterName", value="Latitude")
-			isis.editlab(from_=latitudeCube, option="addkey", grpname="BandBin", keyword="Center", value=filterCenter)
-			isis.editlab(from_=latitudeCube, option="addkey", grpname="BandBin", keyword="Width", value=filterWidth)
-			isis.editlab(from_=latitudeCube, option="addkey", grpname="BandBin", keyword="NaifIkCode", value=naifCode)
-		
-			# convert longitude file to cube
-			longitudeFile = fileBase + '_longitude.csv'
-			longitudeCube = fileBase + '.longitude.cub'
-			isis.ascii2isis(from_=longitudeFile, to_=longitudeCube, order_="bsq", samples_=samples, lines_=256, bands_=1, skip_=0, setnullrange_="true", nullmin_=-2000, nullmax_=-1000)
-			isis.editlab(from_=longitudeCube, opt_="addg", grpname_="BandBin")
-			isis.editlab(from_=longitudeCube, option="addkey", grpname="BandBin", keyword="FilterName", value="Longitude")
-			isis.editlab(from_=longitudeCube, option="addkey", grpname="BandBin", keyword="Center", value=filterCenter)
-			isis.editlab(from_=longitudeCube, option="addkey", grpname="BandBin", keyword="Width", value=filterWidth)
-			isis.editlab(from_=longitudeCube, option="addkey", grpname="BandBin", keyword="NaifIkCode", value=naifCode)
-		
-			# convert altitude file to cube
-			altitudeFile = fileBase + '_altitude.csv'
-			altitudeCube = fileBase + '.altitude.cub'
-			isis.ascii2isis(from_=altitudeFile, to_=altitudeCube, order_="bsq", samples_=samples, lines_=256, bands_=1, skip_=0, setnullrange_="true", nullmin_=-2000, nullmax_=-1000)
-			isis.editlab(from_=altitudeCube, opt_="addg", grpname_="BandBin")
-			isis.editlab(from_=altitudeCube, option="addkey", grpname="BandBin", keyword="FilterName", value="Altitude")
-			isis.editlab(from_=altitudeCube, option="addkey", grpname="BandBin", keyword="Center", value=filterCenter)
-			isis.editlab(from_=altitudeCube, option="addkey", grpname="BandBin", keyword="Width", value=filterWidth)
-			isis.editlab(from_=altitudeCube, option="addkey", grpname="BandBin", keyword="NaifIkCode", value=naifCode)
-		
-			# convert emission file to cube
-			emissionFile = fileBase + '_emission.csv'
-			emissionCube = fileBase + '.emission.cub'
-			isis.ascii2isis(from_=emissionFile, to_=emissionCube, order_="bsq", samples_=samples, lines_=256, bands_=1, skip_=0, setnullrange_="true", nullmin_=-2000, nullmax_=-1000)
-			isis.editlab(from_=emissionCube, opt_="addg", grpname_="BandBin")
-			isis.editlab(from_=emissionCube, option="addkey", grpname="BandBin", keyword="FilterName", value="Emission Angle")
-			isis.editlab(from_=emissionCube, option="addkey", grpname="BandBin", keyword="Center", value=filterCenter)
-			isis.editlab(from_=emissionCube, option="addkey", grpname="BandBin", keyword="Width", value=filterWidth)
-			isis.editlab(from_=emissionCube, option="addkey", grpname="BandBin", keyword="NaifIkCode", value=naifCode)
-		
-			# convert incidence file to cube
-			incidenceFile = fileBase + '_incidence.csv'
-			incidenceCube = fileBase + '.incidence.cub'
-			isis.ascii2isis(from_=incidenceFile, to_=incidenceCube, order_="bsq", samples_=samples, lines_=256, bands_=1, skip_=0, setnullrange_="true", nullmin_=-2000, nullmax_=-1000)
-			isis.editlab(from_=incidenceCube, opt_="addg", grpname_="BandBin")
-			isis.editlab(from_=incidenceCube, option="addkey", grpname="BandBin", keyword="FilterName", value="Incidence Angle")
-			isis.editlab(from_=incidenceCube, option="addkey", grpname="BandBin", keyword="Center", value=filterCenter)
-			isis.editlab(from_=incidenceCube, option="addkey", grpname="BandBin", keyword="Width", value=filterWidth)
-			isis.editlab(from_=incidenceCube, option="addkey", grpname="BandBin", keyword="NaifIkCode", value=naifCode)
-		
-			# convert phase file to cube
-			phaseFile = fileBase + '_phase.csv'
-			phaseCube = fileBase + '.phase.cub'
-			isis.ascii2isis(from_=phaseFile, to_=phaseCube, order_="bsq", samples_=samples, lines_=256, bands_=1, skip_=0, setnullrange_="true", nullmin_=-2000, nullmax_=-1000)
-			isis.editlab(from_=phaseCube, opt_="addg", grpname_="BandBin")
-			isis.editlab(from_=phaseCube, option="addkey", grpname="BandBin", keyword="FilterName", value="Phase Angle")
-			isis.editlab(from_=phaseCube, option="addkey", grpname="BandBin", keyword="Center", value=filterCenter)
-			isis.editlab(from_=phaseCube, option="addkey", grpname="BandBin", keyword="Width", value=filterWidth)
-			isis.editlab(from_=phaseCube, option="addkey", grpname="BandBin", keyword="NaifIkCode", value=naifCode)
-		
+			
+			# generate cubes file sfor each backplane using the backplanecubegen function
+			latitudeCube = backplanecubegen(fileBase, "latitude", "Latitude", filterCenter, filterWidth, naifCode, samples)
+			longitudeCube = backplanecubegen(fileBase, "longitude", "Longitude", filterCenter, filterWidth, naifCode, samples)
+			altitudeCube = backplanecubegen(fileBase, "altitude", "Altitude", filterCenter, filterWidth, naifCode, samples)
+			emissionCube = backplanecubegen(fileBase, "emission", "Emission Angle", filterCenter, filterWidth, naifCode, samples)
+			incidenceCube = backplanecubegen(fileBase, "incidence", "Incidence Angle", filterCenter, filterWidth, naifCode, samples)
+			phaseCube = backplanecubegen(fileBase, "phase", "Phase Angle", filterCenter, filterWidth, naifCode, samples)
+			
 			# create merged product
 			fromlist_path = isis.fromlist.make([mirrorCub, latitudeCube, longitudeCube, altitudeCube, phaseCube, incidenceCube, emissionCube])
 			geomCub = fileBase + '.geom.cub'
