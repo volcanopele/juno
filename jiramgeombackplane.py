@@ -161,6 +161,108 @@ def fileParse(inputs):
 	# tuple with image mid-time, product ID, and orbit output by function
 	return [et, productID, orbit, etStart, exposureTime, startTime, productCreate, sequenceNum, sequenceSam, dataType]
 
+def concatenate(lbandfile, mbandfile, concatfile):
+	filenames = [lbandfile, mbandfile]
+	with open(concatfile, 'w') as outfile:
+		for fname in filenames:
+			with open(fname) as infile:
+				for line in infile:
+					outfile.write(line)
+					
+def backplanegen(frmcode, subsrfvec, derivedX, derivedY, latitudeFile, longitudeFile, altitudeFile, emissionFile, phaseFile, incidenceFile, trgepc, etStart):
+	[shape, frame, bsight, nbounds, bounds] = spiceypy.getfov(frmcode, 20)
+	
+	# calculation of the IFOV
+	dy = np.abs((bounds[0,0]-bounds[2,0]) / 128)
+	dx = np.abs((bounds[0,1]-bounds[2,1]) / 432)
+	
+	# IFOV from the IK
+	# for now using this, but I can commment this out
+	dx = 0.000237767
+	dy = 0.000237767
+	
+	# calculate center pixel in the M-Band FOV
+	xform = spiceypy.pxfrm2(tarfrm, frame, trgepc, etStart)
+	xformsubvec = spiceypy.mxv(xform, subsrfvec)
+	xformsubvec[0] = xformsubvec[0] / xformsubvec[2]
+	xformsubvec[1] = xformsubvec[1] / xformsubvec[2]
+	xformsubvec[2] = xformsubvec[2] / xformsubvec[2]
+	centerX = xformsubvec[1] - bounds[3,1]
+	centerX /= dx
+	centerY = xformsubvec[0] - bounds[3,0]
+	centerY /= dx
+	centerY *= -1
+	
+	# calculating offsets. probably still need this regardless of derivedY values
+	if frmcode == -61411 and derivedY != "" and derivedY <= 128:
+		offsetY = centerY - derivedY
+		offsetY *= dy
+		offsetX = centerX - derivedX
+		offsetX *= dx
+	elif frmcode == -61412 and derivedY != "" and derivedY >= 129:
+		offsetY = centerY - derivedY
+		offsetY *= dy
+		offsetX = centerX - derivedX
+		offsetX *= dx
+	else:
+		offsetY = 0
+		offsetX = 0
+		
+	# generate numpy arrays of radian pixel locations for both the X and Y directions
+	xp = np.arange(0.5,431.51,1)*dx + bounds[3,1] + offsetX
+	yp = bounds[3,0] - np.arange(0.5,127.51,1)*dy + offsetY
+	zp = bounds[0,2]
+	
+	for i in range(0,128):
+		# initialize each line so as to clear the previous line
+		latitudeLine = ""
+		longitudeLine = ""
+		altitudeLine = ""
+		emissionLine = ""
+		phaseLine = ""
+		incidenceLine = ""
+		for j in range(0,432):
+			dvec=[yp[i],xp[j],zp]
+			with spiceypy.no_found_check():
+				[spoint, trgepc, srfvec, found] = spiceypy.sincpt(method2, target, etStart, tarfrm, abcorr, scname, frame, dvec)
+				if found:
+					[lon, lat, alti] = spiceypy.recpgr(target, spoint, radii[0], (radii[0]-radii[2])/radii[0])
+					lon = lon * spiceypy.dpr()
+					lat = lat * spiceypy.dpr()
+					alt = spiceypy.vnorm( srfvec )
+					[trgepc, srfvec, phase, solar, emissn] = spiceypy.ilumin(method2, target, etStart, tarfrm, abcorr, scname, spoint)
+					inc = solar * spiceypy.dpr()
+					ema = emissn * spiceypy.dpr()
+					pha = phase * spiceypy.dpr()
+				else:
+					lon = -1024.0
+					lat = -1024.0
+					alt = -1024.0
+					inc = -1024.0
+					ema = -1024.0
+					pha = -1024.0
+			if latitudeLine == "":
+				latitudeLine = str(lat)
+				longitudeLine = str(lon)
+				altitudeLine = str(alt)
+				emissionLine = str(ema)
+				phaseLine = str(pha)
+				incidenceLine = str(inc)
+			else:
+				latitudeLine = latitudeLine + "," + str(lat)
+				longitudeLine = longitudeLine + "," + str(lon)
+				altitudeLine = altitudeLine + "," + str(alt)
+				emissionLine = emissionLine + "," + str(ema)
+				phaseLine = phaseLine + "," + str(pha)
+				incidenceLine = incidenceLine + "," + str(inc)
+		
+		print(latitudeLine, file = latitudeFile)
+		print(longitudeLine, file = longitudeFile)
+		print(altitudeLine, file = altitudeFile)
+		print(emissionLine, file = emissionFile)
+		print(phaseLine, file = phaseFile)
+		print(incidenceLine, file = incidenceFile)
+					
 ####################
 ### SCRIPT START ###
 ####################
@@ -230,205 +332,10 @@ if numFiles > 0:
 			offsetFile.close()
 		else:
 			derivedY = ""
+			derivedX = ""
 		
-		##################################
-		######## L-BAND BACKPLANE ########
-		##################################
-		
-		[shape, frame, bsight, nbounds, bounds] = spiceypy.getfov(lbandfrm, 20)
-		
-		# calculation of the IFOV
-		dy = np.abs((bounds[0,0]-bounds[2,0]) / 128)
-		dx = np.abs((bounds[0,1]-bounds[2,1]) / 432)
-		
-		# IFOV from the IK
-		# for now using this, but I can commment this out
-		dx = 0.000237767
-		dy = 0.000237767
-		
-		# calculate center pixel in the M-Band FOV
-		xform = spiceypy.pxfrm2(tarfrm, lbndnm, trgepc, etStart)
-		lbandsubvec = spiceypy.mxv(xform, subsrfvec)
-		lbandsubvec[0] = lbandsubvec[0] / lbandsubvec[2]
-		lbandsubvec[1] = lbandsubvec[1] / lbandsubvec[2]
-		lbandsubvec[2] = lbandsubvec[2] / lbandsubvec[2]
-		centerX = lbandsubvec[1] - bounds[3,1]
-		centerX /= dx
-		centerY = lbandsubvec[0] - bounds[3,0]
-		centerY /= dx
-		centerY *= -1
-		
-		# calculating offsets. probably still need this regardless of derivedY values
-		if derivedY != "" and derivedY <= 128:
-			offsetY = centerY - derivedY
-			offsetY *= dy
-			offsetX = centerX - derivedX
-			offsetX *= dx
-		else:
-			offsetY = 0
-			offsetX = 0
-			
-		# generate numpy arrays of radian pixel locations for both the X and Y directions
-		xp = np.arange(0.5,431.51,1)*dx + bounds[3,1] + offsetX
-		yp = bounds[3,0] - np.arange(0.5,127.51,1)*dy + offsetY
-		zp = bounds[0,2]
-		
-		# initialize the arrays for different backplanes
-		# don't even really need this!!!
-		llon = np.zeros([432,128])
-		llon.fill(-1024.0)
-		llat = np.zeros([432,128])
-		llat.fill(-1024.0)
-		linc = np.zeros([432,128])
-		linc.fill(-1024.0)
-		lemm = np.zeros([432,128])
-		lemm.fill(-1024.0)
-		lpha = np.zeros([432,128])
-		lpha.fill(-1024.0)
-		lalt = np.zeros([432,128])
-		lalt.fill(-1024.0)
-		
-		for i in range(0,128):
-			# initialize each line so as to clear the previous line
-			latitudeLine = ""
-			longitudeLine = ""
-			altitudeLine = ""
-			emissionLine = ""
-			phaseLine = ""
-			incidenceLine = ""
-			for j in range(0,432):
-				dvec=[yp[i],xp[j],zp]
-				with spiceypy.no_found_check():
-					[spoint, trgepc, srfvec, found] = spiceypy.sincpt(method2, target, etStart, tarfrm, abcorr, scname, frame, dvec)
-					if found:
-						[loni, lati, alti] = spiceypy.recpgr(target, spoint, radii[0], (radii[0]-radii[2])/radii[0])
-						llon[j,i] = loni * spiceypy.dpr()
-						llat[j,i] = lati * spiceypy.dpr()
-						lalt[j,i] = spiceypy.vnorm( srfvec )
-						[trgepc, srfvec, phase, solar, emissn] = spiceypy.ilumin(method2,target, etStart, tarfrm, abcorr, scname, spoint)
-						linc[j,i] = solar * spiceypy.dpr()
-						lemm[j,i] = emissn * spiceypy.dpr()
-						lpha[j,i] = phase * spiceypy.dpr()
-				if latitudeLine == "":
-					latitudeLine = str(llat[j,i])
-					longitudeLine = str(llon[j,i])
-					altitudeLine = str(lalt[j,i])
-					emissionLine = str(lemm[j,i])
-					phaseLine = str(lpha[j,i])
-					incidenceLine = str(linc[j,i])
-				else:
-					latitudeLine = latitudeLine + "," + str(llat[j,i])
-					longitudeLine = longitudeLine + "," + str(llon[j,i])
-					altitudeLine = altitudeLine + "," + str(lalt[j,i])
-					emissionLine = emissionLine + "," + str(lemm[j,i])
-					phaseLine = phaseLine + "," + str(lpha[j,i])
-					incidenceLine = incidenceLine + "," + str(linc[j,i])
-			print(latitudeLine, file = latitudeFile)
-			print(longitudeLine, file = longitudeFile)
-			print(altitudeLine, file = altitudeFile)
-			print(emissionLine, file = emissionFile)
-			print(phaseLine, file = phaseFile)
-			print(incidenceLine, file = incidenceFile)
-		
-		##################################
-		######## M-BAND BACKPLANE ########
-		##################################
-		
-		[shape, frame, bsight, nbounds, bounds] = spiceypy.getfov(mbandfrm, 20)
-		
-		# calculate the IFOV
-		dy = np.abs((bounds[0,0]-bounds[2,0]) / 128)
-		dx = np.abs((bounds[0,1]-bounds[2,1]) / 432)
-		
-		# IFOV from the IK
-		# for now using this, but I can commment this out
-		dx = 0.000237767
-		dy = 0.000237767
-		
-		# calculate center pixel in the M-Band FOV
-		xform = spiceypy.pxfrm2(tarfrm, mbndnm, trgepc, etStart)
-		mbandsubvec = spiceypy.mxv(xform, subsrfvec)
-		mbandsubvec[0] = mbandsubvec[0] / mbandsubvec[2]
-		mbandsubvec[1] = mbandsubvec[1] / mbandsubvec[2]
-		mbandsubvec[2] = mbandsubvec[2] / mbandsubvec[2]
-		centerX = mbandsubvec[1] - bounds[3,1]
-		centerX /= dx
-		centerY = mbandsubvec[0] - bounds[3,0]
-		centerY /= dx
-		centerY *= -1
-		centerY += 128
-		
-		# calculating X and Y offsets if derived information is available
-		if derivedY != "" and derivedY >= 129:
-			offsetY = centerY - derivedY
-			offsetY *= dy
-			offsetX = centerX - derivedX
-			offsetX *= dx
-		else:
-			offsetY = 0
-			offsetX = 0
-		
-		# generate numpy arrays for both the X and Y directions
-		xp = np.arange(0.5,431.51,1)*dx + bounds[3,1] + offsetX
-		yp = bounds[3,0] - np.arange(0.5,127.51,1)*dy - offsetY
-		zp = bounds[0,2]
-		
-		# initialize the arrays for different backplanes
-		mlon = np.zeros([432,128])
-		mlon.fill(-1024.0)
-		mlat = np.zeros([432,128])
-		mlat.fill(-1024.0)
-		minc = np.zeros([432,128])
-		minc.fill(-1024.0)
-		mema = np.zeros([432,128])
-		mema.fill(-1024.0)
-		mpha = np.zeros([432,128])
-		mpha.fill(-1024.0)
-		malt = np.zeros([432,128])
-		malt.fill(-1024.0)
-		
-		for i in range(0,128):
-			# initialize each line so as to clear the previous line
-			latitudeLine = ""
-			longitudeLine = ""
-			altitudeLine = ""
-			emissionLine = ""
-			phaseLine = ""
-			incidenceLine = ""
-			for j in range(0,432):
-				dvec=[yp[i],xp[j],zp]
-				with spiceypy.no_found_check():
-					[spoint, trgepc, srfvec, found] = spiceypy.sincpt(method2, target, etStart, tarfrm, abcorr, scname, frame, dvec)
-					if found:
-						[loni, lati, alti] = spiceypy.recpgr(target, spoint, radii[0], (radii[0]-radii[2])/radii[0])
-						mlon[j,i] = loni * spiceypy.dpr()
-						mlat[j,i] = lati * spiceypy.dpr()
-						malt[j,i] = spiceypy.vnorm( srfvec )
-						[trgepc, srfvec, phase, solar, emissn] = spiceypy.ilumin(method2,target, etStart, tarfrm, abcorr, scname, spoint)
-						minc[j,i] = solar * spiceypy.dpr()
-						mema[j,i] = emissn * spiceypy.dpr()
-						mpha[j,i] = phase * spiceypy.dpr()
-				if latitudeLine == "":
-					latitudeLine = str(llat[j,i])
-					longitudeLine = str(llon[j,i])
-					altitudeLine = str(lalt[j,i])
-					emissionLine = str(lemm[j,i])
-					phaseLine = str(lpha[j,i])
-					incidenceLine = str(linc[j,i])
-				else:
-					latitudeLine = latitudeLine + "," + str(mlat[j,i])
-					longitudeLine = longitudeLine + "," + str(mlon[j,i])
-					altitudeLine = altitudeLine + "," + str(malt[j,i])
-					emissionLine = emissionLine + "," + str(mema[j,i])
-					phaseLine = phaseLine + "," + str(mpha[j,i])
-					incidenceLine = incidenceLine + "," + str(minc[j,i])
-			print(latitudeLine, file = latitudeFile)
-			print(longitudeLine, file = longitudeFile)
-			print(altitudeLine, file = altitudeFile)
-			print(emissionLine, file = emissionFile)
-			print(phaseLine, file = phaseFile)
-			print(incidenceLine, file = incidenceFile)
-		
+		backplanegen(lbandfrm, subsrfvec, derivedX, derivedY, latitudeFile, longitudeFile, altitudeFile, emissionFile, phaseFile, incidenceFile, trgepc, etStart)
+		backplanegen(mbandfrm, subsrfvec, derivedX, derivedY, latitudeFile, longitudeFile, altitudeFile, emissionFile, phaseFile, incidenceFile, trgepc, etStart)
 		
 		latitudeFile.close()
 		longitudeFile.close()
