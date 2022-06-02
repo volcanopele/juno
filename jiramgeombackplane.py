@@ -181,36 +181,47 @@ def backplanegen(frmcode, subsrfvec, derivedX, derivedY, latitudeFile, longitude
 	dx = 0.000237767
 	dy = 0.000237767
 	
-	# calculate center pixel in the M-Band FOV
-	xform = spiceypy.pxfrm2(tarfrm, frame, trgepc, etStart)
-	xformsubvec = spiceypy.mxv(xform, subsrfvec)
-	xformsubvec[0] = xformsubvec[0] / xformsubvec[2]
-	xformsubvec[1] = xformsubvec[1] / xformsubvec[2]
-	xformsubvec[2] = xformsubvec[2] / xformsubvec[2]
-	centerX = xformsubvec[1] - bounds[3,1]
-	centerX /= dx
-	centerY = xformsubvec[0] - bounds[3,0]
-	centerY /= dx
-	centerY *= -1
+	# this script can check for a csv file listing the center pixel of Io
+	# for each image, likely from performing a limb fit or calculating the 
+	# brightest region of an image within a circle of Io's radius in pixels
+	# this script calculates the center pixel according to spice then 
+	# calculates the difference between the two points to be used as offsets 
+	# for the image backplanes
+	if derivedY != "":	
+		# calculate center pixel
+		xform = spiceypy.pxfrm2(tarfrm, frame, trgepc, etStart)
+		xformsubvec = spiceypy.mxv(xform, subsrfvec)
+		xformsubvec[0] = xformsubvec[0] / xformsubvec[2]
+		xformsubvec[1] = xformsubvec[1] / xformsubvec[2]
+		xformsubvec[2] = xformsubvec[2] / xformsubvec[2]
+		centerX = xformsubvec[1] - bounds[3,1]
+		centerX /= dx
+		centerY = xformsubvec[0] - bounds[3,0]
+		centerY /= dx
+		centerY *= -1
 	
-	# calculating offsets. probably still need this regardless of derivedY values
-	if frmcode == -61411 and derivedY != "" and derivedY <= 128:
-		offsetY = centerY - derivedY
-		offsetY *= dy
-		offsetX = centerX - derivedX
-		offsetX *= dx
-	elif frmcode == -61412 and derivedY != "" and derivedY >= 129:
-		offsetY = centerY - derivedY
-		offsetY *= dy
-		offsetX = centerX - derivedX
-		offsetX *= dx
+		# calculating offsets. probably still need this regardless of derivedY values
+		if derivedY <= 128:
+			if frmcode == -61412:
+				offsetY -= 10
+			offsetY = centerY - derivedY
+			offsetY *= dy
+			offsetX = centerX - derivedX
+			offsetX *= dx
+		elif derivedY >= 129:
+			if frmcode == -61411:
+				offsetY += 10
+			offsetY = centerY + 128 - derivedY
+			offsetY *= dy
+			offsetX = centerX - derivedX
+			offsetX *= dx
 	else:
 		offsetY = 0
 		offsetX = 0
 		
 	# generate numpy arrays of radian pixel locations for both the X and Y directions
 	xp = np.arange(0.5,431.51,1)*dx + bounds[3,1] + offsetX
-	yp = bounds[3,0] - np.arange(0.5,127.51,1)*dy + offsetY
+	yp = bounds[3,0] - np.arange(0.5,127.51,1)*dy - offsetY
 	zp = bounds[0,2]
 	
 	for i in range(0,128):
