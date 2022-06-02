@@ -22,8 +22,9 @@ import kalasiris as isis
 # ISIS cube file is also exported, containing a band for each of these values
 # as well as one for the original image file.
 
-# To run this script, ISIS 7.0.0 is required. Installation instructions are 
-# available at: https://github.com/USGS-Astrogeology/ISIS3#installation
+# To run this script, ISIS 7.0.0 or higher is required. Installation 
+# instructions are available at: 
+# https://github.com/USGS-Astrogeology/ISIS3#installation
 # The kalasiris python module is also required to generate ISIS cube files.
 # It is not part of the standard ISIS installation. With the isis conda 
 # environment active, run:
@@ -34,6 +35,20 @@ import kalasiris as isis
 # wrapper for ISIS. Alternatively, if cubes files are not needed, you can 
 # delete or comment out the Cube generation section (from the Cube generation
 # header to the spiceypy.unload call at the very end of the script)
+
+# To run this script, use the following command:
+
+# python jiramgeombackplane.py
+
+# A file picker dialog box will open. Select one or more JIRAM labels to 
+# continue. If image data was selected, another file picker dialog box will 
+# open, allowing the user to select a CSV file listing measured Io center 
+# pixels, though this is optional! The script can work without one.
+
+# output files are placed in the same directory as the input files.
+
+# REMEMBER TO EDIT THE metakr VARIABLE in LINE 77 TO MATCH THE FULL PATH TO 
+# YOUR JUNO METAKERNEL
 
 
 ###################################
@@ -548,6 +563,8 @@ for file in inputFiles:
 		os.system(str("/bin/rm " + emissionCube))
 		os.system(str("/bin/rm " + incidenceCube))
 		os.system(str("/bin/rm " + phaseCube))
+		if dataType == 'IMAGE':
+			os.system(str("/bin/rm " + imageCub))
 
 #############################
 ######## SCRIPT END #########
