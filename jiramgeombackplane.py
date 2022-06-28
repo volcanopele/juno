@@ -47,7 +47,7 @@ import kalasiris as isis
 
 # output files are placed in the same directory as the input files.
 
-# REMEMBER TO EDIT THE metakr VARIABLE in LINE 77 TO MATCH THE FULL PATH TO 
+# REMEMBER TO EDIT THE metakr VARIABLE in LINE 78 TO MATCH THE FULL PATH TO 
 # YOUR JUNO METAKERNEL
 
 
@@ -193,6 +193,7 @@ def backplanegen(frmcode, derivedX, derivedY, trgepc):
 	dx = 0.000237767
 	dy = 0.000237767
 	
+	
 	# this script can check for a csv file listing the center pixel of Io
 	# for each image, likely from performing a limb fit or calculating the 
 	# brightest region of an image within a circle of Io's radius in pixels
@@ -215,15 +216,26 @@ def backplanegen(frmcode, derivedX, derivedY, trgepc):
 		# calculating offsets. probably still need this regardless of derivedY values
 		if derivedY <= 128:
 			if frmcode == -61412:
-				offsetY -= 10
-			offsetY = centerY - derivedY
+				# include 10 pixel gap between L and M band portions of detector
+				derivedY -= 10
+				# center will be in M band coordinates so need to add 128 to match 
+				# combined image coordinates
+				offsetY = centerY + 128 - derivedY
+			else:
+				offsetY = centerY - derivedY
 			offsetY *= dy
+			print(offsetY)
 			offsetX = centerX - derivedX
 			offsetX *= dx
 		elif derivedY >= 129:
 			if frmcode == -61411:
-				offsetY += 10
-			offsetY = centerY + 128 - derivedY
+				# include 10 pixel gap between L and M band portions of detector
+				derivedY += 10
+				offsetY = centerY - derivedY
+			else:
+				# center will be in M band coordinates so need to add 128 to match 
+				# combined image coordinates
+				offsetY = centerY + 128 - derivedY
 			offsetY *= dy
 			offsetX = centerX - derivedX
 			offsetX *= dx
