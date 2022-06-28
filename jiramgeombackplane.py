@@ -224,7 +224,6 @@ def backplanegen(frmcode, derivedX, derivedY, trgepc):
 			else:
 				offsetY = centerY - derivedY
 			offsetY *= dy
-			print(offsetY)
 			offsetX = centerX - derivedX
 			offsetX *= dx
 		elif derivedY >= 129:
