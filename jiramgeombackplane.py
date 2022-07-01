@@ -212,6 +212,8 @@ def backplanegen(frmcode, derivedX, derivedY, trgepc):
 		centerY = xformsubvec[0] - bounds[3,0]
 		centerY /= dx
 		centerY *= -1
+		derivedY -= 0.5
+		derivedX -= 0.5
 	
 		# calculating offsets. probably still need this regardless of derivedY values
 		if derivedY <= 128:
