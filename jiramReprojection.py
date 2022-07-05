@@ -5,8 +5,8 @@ import spiceypy
 from tkinter import filedialog as fd
 import tkinter as tk
 import os, sys, getopt
-import numpy as np
 import kalasiris as isis
+import pandas as pd
 
 
 ####################
@@ -95,27 +95,6 @@ def fileParse(inputs):
 			stopTime = stopTimes[2]
 			stopTime = stopTime.split('"')[1]
 			stopTime = stopTime.split('/')[1]
-		elif 'PRODUCT_CREATION_TIME' in line:
-			productCreate = line
-			productCreates = productCreate.split(" ")
-			productCreates = sorted(productCreates, reverse=True)
-			productCreate = productCreates[2]
-		elif 'STANDARD_DATA_PRODUCT_ID' in line:
-			dataType = line
-			dataTypes = dataType.split(" ")
-			dataTypes = sorted(dataTypes, reverse=True)
-			dataType = dataTypes[2]
-			dataType = dataType.split('"')[1]
-		elif 'SEQUENCE_NUMBER' in line:
-			sequenceNum = line
-			sequenceNums = sequenceNum.split(" ")
-			sequenceNums = sorted(sequenceNums, reverse=True)
-			sequenceNum = sequenceNums[2]
-		elif 'SEQUENCE_SAMPLES' in line:
-			sequenceSam = line
-			sequenceSams = sequenceSam.split(" ")
-			sequenceSams = sorted(sequenceSams, reverse=True)
-			sequenceSam = sequenceSams[2]
 		elif 'PRODUCT_ID ' in line:
 			if line.startswith('PRODUCT_ID ', 0):
 				productID = line
@@ -138,7 +117,7 @@ def fileParse(inputs):
 	file.close()
 	
 	# tuple with image mid-time, product ID, and orbit output by function
-	return [et, productID, orbit, etStart, exposureTime, startTime, productCreate, sequenceNum, sequenceSam, dataType]
+	return [et, productID, orbit, etStart, exposureTime, startTime]
 
 
 ####################
@@ -156,56 +135,105 @@ mapInput = fd.askopenfilename(title='Select Map Cube', filetypes=(('CUB Files', 
 
 # determine size of map cube
 samples = int(isis.getkey(from_=mapInput, grpname_="Dimensions", objname_="Core", keyword_="Samples").stdout)
+samples -= 1
 lines = int(isis.getkey(from_=mapInput, grpname_="Dimensions", objname_="Core", keyword_="Lines").stdout)
-# convert JIRAM image to ISIS cube
+lines -= 1
+
+# prepare file names
 parseTuple = fileParse(jiramInput)
 
 root = os.path.dirname(jiramInput)
 name = os.path.basename(jiramInput)
 productID = parseTuple[1]
 fileBase = root + '/' + productID
+
 imageImg = fileBase + '.IMG'
 imageCub = fileBase + '.cub'
 mirrorCub = fileBase + '.mirror.cub'
-outputText = root+ '/output.txt'
+lbandCub = fileBase + '.lband.cub'
+mbandCub = fileBase + '.mband.cub'
+lbandCsv = fileBase + '.lband.txt'
+mbandCsv = fileBase + '.mband.txt'
 
-isis.raw2isis(from_=imageImg, to_=imageCub, samples_=432, lines_=256, bands_=1, bittype_="REAL")
+mapptCSV = root+ '/output.csv'
+mapCSV = fileBase + '.map.txt'
+latitudeCub = fileBase + '.latitude.cub'
+latitudeCSV = fileBase + '.latitude.txt'
+longitudeCub = fileBase + '.longitude.cub'
+longitudeCSV = fileBase + '.longitude.txt'
+reprojectCSV = fileBase + '.reprojected.csv'
+reprojectedCub = fileBase + '.reprojected.cub'
+delimiter=","
+
+# create basemap image array
+isis.isis2ascii(from_=mapInput, to_=mapCSV, header_="no", delimiter_=delimiter, setpixelvalues="yes", nullvalue_=-1024, hrsvalue_=1)
+mapPanda = pd.read_csv(mapCSV, header=None, dtype=float)
+
+# create backplane arrays
+isis.phocube(from_=mapInput, to_=latitudeCub, source="PROJECTION", longitude="false")
+isis.isis2ascii(from_=latitudeCub, to_=latitudeCSV, header_="no", delimiter_=delimiter, setpixelvalues="yes", nullvalue_=-1024, hrsvalue_=1)
+latitudePanda = pd.read_csv(latitudeCSV, header=None, dtype=float)
+isis.phocube(from_=mapInput, to_=longitudeCub, source="PROJECTION", latitude="false")
+isis.isis2ascii(from_=longitudeCub, to_=longitudeCSV, header_="no", delimiter_=delimiter, setpixelvalues="yes", nullvalue_=-1024, hrsvalue_=1)
+longitudePanda = pd.read_csv(latitudeCSV, header=None, dtype=float)
+
+# create JIRAM image array
+isis.raw2isis(from_=imageImg, to_=imageCub, samples_=samples, lines_=256, bands_=1, bittype_="REAL")
+isis.mirror(from_=imageCub, to_=mirrorCub)
+isis.crop(from_=mirrorCub, to_=lbandCub, line_=1, nlines_=128)
+isis.crop(from_=mirrorCub, to_=mbandCub, line_=129, nlines_=128)
+isis.isis2ascii(from_=lbandCub, to_=lbandCsv, header_="no", delimiter_=delimiter, setpixelvalues="yes", nullvalue_=-1024, hrsvalue_=1)
+lbandPanda = pd.read_csv(lbandCsv, header=None, dtype=float)
+isis.isis2ascii(from_=mbandCub, to_=mbandCsv, header_="no", delimiter_=delimiter, setpixelvalues="yes", nullvalue_=-1024, hrsvalue_=1)
+mbandPanda = pd.read_csv(mbandCsv, header=None, dtype=float)
+
+print("Setup Complete")
 
 # loop for each pixel (one loop for Y axis, nested loop for X axis)
-# for i in range(1,lines):
-# 	for j in range(1,samples):
-# 		# determine lat and lon of pixel center
-# 		isis.mappt(from_=mapInput, to_=outputText, format="pvl", append="false", type="image", sample_=j, line_=i)
-# 		
-# 		with open(outputText) as tempFile:
-# 			if 'PlanetocentricLatitude' in tempFile.read():
-# 			latitude=float(isis.getkey(from_=outputText, grpname_="Results", keyword_="PlanetocentricLatitude").stdout)
-# 			longitude=float(isis.getkey(from_=outputText, grpname_="Results", keyword_="PositiveWest360Longitude").stdout)
+for i in range(0,lines):
+	for j in range(0,samples):
+		# determine lat and lon of pixel center
+		if mapPanda.values[i][j] != -1024:
+			latitude = latitudePanda.values[i][j]
+			longitude = longitudePanda.values[i][j]
+			
+			# in JIRAM image, find pixel for lat/lon center (careful, make sure that it is visible)
+			latitude = latitude * spiceypy.rpd()
+			longitude = longitude * spiceypy.rpd()
+			
+			
+			
+			
+			# obtain pixel value (ISIS?)
+			
+			# paint pixel in ISIS cube pixel value from JIRAM image (or make CSV file?)
+			# mapPanda.values[i][j] = 1
 
 
-for j in range(1,samples):
-	# determine lat and lon of pixel center
-	print(j)
-	isis.mappt(from_=mapInput, to_=outputText, format="pvl", append="false", type="image", sample_=j, line_=1)
-	
-	# this bit is VERY slow, need to find a way to make this more efficient, like filtering out 
-	# null pixels before hand
-	
-	with open(outputText) as tempFile:
-		if 'PlanetocentricLatitude' in tempFile.read():
-			latitude=float(isis.getkey(from_=outputText, grpname_="Results", keyword_="PlanetocentricLatitude").stdout)
-			longitude=float(isis.getkey(from_=outputText, grpname_="Results", keyword_="PositiveWest360Longitude").stdout)
-			print(latitude)
-			print(longitude)
 
-
-# in JIRAM image, find pixel for lat/lon center (careful, make sure that it is visible)
 # obtain pixel value (ISIS?)
-# paint pixel in ISIS cube pixel value from JIRAM image (or make CSV file?)
+
+
+
+# Export CSV to ISIS image
+# mapPanda.to_csv(reprojectCSV)
+# isis.ascii2isis(from_=reprojectCSV, to_=imageCub, order_="bsq", samples_=samples, lines_=lines, bands_=1, skip_=0, setnullrange_="true", nullmin_=-2000, nullmax_=-1000)
 
 
 #############################
 ######## SCRIPT END #########
 #############################
+# unload spice kernels
 spiceypy.unload( metakr )
 
+# clean up extraneous files
+os.system(str("/bin/rm " + outputText))
+os.system(str("/bin/rm " + mapCSV))
+os.system(str("/bin/rm " + latitudeCub))
+os.system(str("/bin/rm " + latitudeCSV))
+os.system(str("/bin/rm " + longitudeCub))
+os.system(str("/bin/rm " + longitudeCSV))
+os.system(str("/bin/rm " + imageCub))
+os.system(str("/bin/rm " + mirrorCub))
+os.system(str("/bin/rm " + lbandCub))
+os.system(str("/bin/rm " + mbandCub))
