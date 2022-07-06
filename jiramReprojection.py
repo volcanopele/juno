@@ -43,6 +43,7 @@ metakr = '/Users/perry/Dropbox/Io/Juno/kernels/juno_latest.tm'
 sclkid = -61
 scname = 'JUNO'
 target = 'IO'
+targid = 501
 tarfrm = 'IAU_IO'
 abcorr = 'LT+S'
 jirmid = -61410
@@ -135,12 +136,16 @@ mapInput = fd.askopenfilename(title='Select Map Cube', filetypes=(('CUB Files', 
 
 # determine size of map cube
 samples = int(isis.getkey(from_=mapInput, grpname_="Dimensions", objname_="Core", keyword_="Samples").stdout)
-samples -= 1
+arraySamples = samples
+arraySamples -= 1
 lines = int(isis.getkey(from_=mapInput, grpname_="Dimensions", objname_="Core", keyword_="Lines").stdout)
-lines -= 1
+arrayLines = lines
+arrayLines -= 1
 
 # prepare file names
 parseTuple = fileParse(jiramInput)
+
+etStart =  parseTuple[3]
 
 root = os.path.dirname(jiramInput)
 name = os.path.basename(jiramInput)
@@ -175,10 +180,10 @@ isis.isis2ascii(from_=latitudeCub, to_=latitudeCSV, header_="no", delimiter_=del
 latitudePanda = pd.read_csv(latitudeCSV, header=None, dtype=float)
 isis.phocube(from_=mapInput, to_=longitudeCub, source="PROJECTION", latitude="false")
 isis.isis2ascii(from_=longitudeCub, to_=longitudeCSV, header_="no", delimiter_=delimiter, setpixelvalues="yes", nullvalue_=-1024, hrsvalue_=1)
-longitudePanda = pd.read_csv(latitudeCSV, header=None, dtype=float)
+longitudePanda = pd.read_csv(longitudeCSV, header=None, dtype=float)
 
-# create JIRAM image array
-isis.raw2isis(from_=imageImg, to_=imageCub, samples_=samples, lines_=256, bands_=1, bittype_="REAL")
+# create JIRAM image arrays
+isis.raw2isis(from_=imageImg, to_=imageCub, samples_=432, lines_=256, bands_=1, bittype_="REAL")
 isis.mirror(from_=imageCub, to_=mirrorCub)
 isis.crop(from_=mirrorCub, to_=lbandCub, line_=1, nlines_=128)
 isis.crop(from_=mirrorCub, to_=mbandCub, line_=129, nlines_=128)
@@ -187,27 +192,57 @@ lbandPanda = pd.read_csv(lbandCsv, header=None, dtype=float)
 isis.isis2ascii(from_=mbandCub, to_=mbandCsv, header_="no", delimiter_=delimiter, setpixelvalues="yes", nullvalue_=-1024, hrsvalue_=1)
 mbandPanda = pd.read_csv(mbandCsv, header=None, dtype=float)
 
+# camera variables
+dx = 0.000237767
+dy = 0.000237767
+[mshape, mframe, mbsight, mnbounds, mbounds] = spiceypy.getfov(mbandfrm, 20)
+[lshape, lframe, lbsight, lnbounds, lbounds] = spiceypy.getfov(lbandfrm, 20)
+
 print("Setup Complete")
 
 # loop for each pixel (one loop for Y axis, nested loop for X axis)
-for i in range(0,lines):
-	for j in range(0,samples):
+for i in range(0,arrayLines):
+	for j in range(0,arraySamples):
 		# determine lat and lon of pixel center
 		if mapPanda.values[i][j] != -1024:
+			print(i,j)
 			latitude = latitudePanda.values[i][j]
 			longitude = longitudePanda.values[i][j]
-			
-			# in JIRAM image, find pixel for lat/lon center (careful, make sure that it is visible)
+			longitude = 360 - longitude
+			print(latitude, longitude)
+			# rectangular coordinate conversion
 			latitude = latitude * spiceypy.rpd()
 			longitude = longitude * spiceypy.rpd()
+			spoint = spiceypy.srfrec(targid, longitude, latitude)
+			(trgepc, srfvec, phase, incdnc, emissn) = spiceypy.ilumin(method2, target, etStart, tarfrm, abcorr, scname, spoint)
+			print(srfvec)
+			# in JIRAM image, find pixel for lat/lon center (careful, make sure that it is visible)
 			
-			
-			
+			# m-band (taken from center pixel calculation in jiramgeombackplane.py)
+			# this is not providing an accurate position
+			xform = spiceypy.pxfrm2(tarfrm, mframe, trgepc, etStart)
+			xformvec = spiceypy.mxv(xform, srfvec)
+			print(xformvec)
+			xformvec[0] = xformvec[0] / xformvec[2]
+			xformvec[1] = xformvec[1] / xformvec[2]
+			xformvec[2] = xformvec[2] / xformvec[2]
+			print(xformvec)
+			X = xformvec[1]
+			X /= dx
+			X += 215.5
+			X = int(round(X,0))
+			Y = xformvec[0]
+			Y /= dy
+			Y = 63.5 - Y
+			Y = int(round(Y,0))
+			print(X, Y)
+
+					
 			
 			# obtain pixel value (ISIS?)
 			
 			# paint pixel in ISIS cube pixel value from JIRAM image (or make CSV file?)
-			# mapPanda.values[i][j] = 1
+			mapPanda.values[i][j] = mbandPanda.values[Y][X]
 
 
 
@@ -216,8 +251,8 @@ for i in range(0,lines):
 
 
 # Export CSV to ISIS image
-# mapPanda.to_csv(reprojectCSV)
-# isis.ascii2isis(from_=reprojectCSV, to_=imageCub, order_="bsq", samples_=samples, lines_=lines, bands_=1, skip_=0, setnullrange_="true", nullmin_=-2000, nullmax_=-1000)
+mapPanda.to_csv(reprojectCSV, index=False, header=False)
+isis.ascii2isis(from_=reprojectCSV, to_=reprojectedCub, order_="bsq", samples_=samples, lines_=lines, bands_=1, skip_=0, setnullrange_="true", nullmin_=-2000, nullmax_=-1000)
 
 
 #############################
@@ -227,13 +262,14 @@ for i in range(0,lines):
 spiceypy.unload( metakr )
 
 # clean up extraneous files
-os.system(str("/bin/rm " + outputText))
-os.system(str("/bin/rm " + mapCSV))
-os.system(str("/bin/rm " + latitudeCub))
-os.system(str("/bin/rm " + latitudeCSV))
-os.system(str("/bin/rm " + longitudeCub))
-os.system(str("/bin/rm " + longitudeCSV))
-os.system(str("/bin/rm " + imageCub))
-os.system(str("/bin/rm " + mirrorCub))
-os.system(str("/bin/rm " + lbandCub))
-os.system(str("/bin/rm " + mbandCub))
+# os.system(str("/bin/rm " + mapCSV))
+# os.system(str("/bin/rm " + latitudeCub))
+# os.system(str("/bin/rm " + latitudeCSV))
+# os.system(str("/bin/rm " + longitudeCub))
+# os.system(str("/bin/rm " + longitudeCSV))
+# os.system(str("/bin/rm " + imageCub))
+# os.system(str("/bin/rm " + mirrorCub))
+# os.system(str("/bin/rm " + lbandCub))
+# os.system(str("/bin/rm " + mbandCub))
+# os.system(str("/bin/rm " + lbandCsv))
+# os.system(str("/bin/rm " + mbandCsv))
