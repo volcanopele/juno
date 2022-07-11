@@ -20,3 +20,6 @@ Generates geometry and illumination backplanes for JIRAM images. Also generates 
 
 ### jiram_display.py
 Interactive display of JIRAM images in python (supports imager and spectrometer data)
+
+### jiramReprojection.py
+Using an ISIS level 3 cube, reprojects JIRAM images. This is useful for summing images.
