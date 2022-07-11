@@ -205,39 +205,32 @@ for i in range(0,arrayLines):
 	for j in range(0,arraySamples):
 		# determine lat and lon of pixel center
 		if mapPanda.values[i][j] != -1024:
-			print(i,j)
 			latitude = latitudePanda.values[i][j]
 			longitude = longitudePanda.values[i][j]
-			longitude = 360 - longitude
-			print(latitude, longitude)
 			# rectangular coordinate conversion
 			latitude = latitude * spiceypy.rpd()
 			longitude = longitude * spiceypy.rpd()
 			spoint = spiceypy.srfrec(targid, longitude, latitude)
 			(trgepc, srfvec, phase, incdnc, emissn) = spiceypy.ilumin(method2, target, etStart, tarfrm, abcorr, scname, spoint)
-			print(srfvec)
 			# in JIRAM image, find pixel for lat/lon center (careful, make sure that it is visible)
 			
 			# m-band (taken from center pixel calculation in jiramgeombackplane.py)
 			# this is not providing an accurate position
+			# it should be! This isn't the broken part!
 			xform = spiceypy.pxfrm2(tarfrm, mframe, trgepc, etStart)
 			xformvec = spiceypy.mxv(xform, srfvec)
-			print(xformvec)
 			xformvec[0] = xformvec[0] / xformvec[2]
 			xformvec[1] = xformvec[1] / xformvec[2]
 			xformvec[2] = xformvec[2] / xformvec[2]
-			print(xformvec)
-			X = xformvec[1]
+			X = xformvec[1] - mbounds[3,1]
 			X /= dx
-			X += 215.5
+			X -= 1
 			X = int(round(X,0))
-			Y = xformvec[0]
-			Y /= dy
-			Y = 63.5 - Y
+			Y = xformvec[0] - mbounds[3,0]
+			Y /= dx
+			Y *= -1
+			Y -= 1
 			Y = int(round(Y,0))
-			print(X, Y)
-
-					
 			
 			# obtain pixel value (ISIS?)
 			
@@ -253,7 +246,7 @@ for i in range(0,arrayLines):
 # Export CSV to ISIS image
 mapPanda.to_csv(reprojectCSV, index=False, header=False)
 isis.ascii2isis(from_=reprojectCSV, to_=reprojectedCub, order_="bsq", samples_=samples, lines_=lines, bands_=1, skip_=0, setnullrange_="true", nullmin_=-2000, nullmax_=-1000)
-
+isis.copylabel(from_=reprojectedCub, source_=mapInput, mapping="true")
 
 #############################
 ######## SCRIPT END #########
@@ -262,14 +255,15 @@ isis.ascii2isis(from_=reprojectCSV, to_=reprojectedCub, order_="bsq", samples_=s
 spiceypy.unload( metakr )
 
 # clean up extraneous files
-# os.system(str("/bin/rm " + mapCSV))
-# os.system(str("/bin/rm " + latitudeCub))
-# os.system(str("/bin/rm " + latitudeCSV))
-# os.system(str("/bin/rm " + longitudeCub))
-# os.system(str("/bin/rm " + longitudeCSV))
-# os.system(str("/bin/rm " + imageCub))
-# os.system(str("/bin/rm " + mirrorCub))
-# os.system(str("/bin/rm " + lbandCub))
-# os.system(str("/bin/rm " + mbandCub))
-# os.system(str("/bin/rm " + lbandCsv))
-# os.system(str("/bin/rm " + mbandCsv))
+os.system(str("/bin/rm " + mapCSV))
+os.system(str("/bin/rm " + latitudeCub))
+os.system(str("/bin/rm " + latitudeCSV))
+os.system(str("/bin/rm " + longitudeCub))
+os.system(str("/bin/rm " + longitudeCSV))
+os.system(str("/bin/rm " + imageCub))
+os.system(str("/bin/rm " + mirrorCub))
+os.system(str("/bin/rm " + lbandCub))
+os.system(str("/bin/rm " + mbandCub))
+os.system(str("/bin/rm " + lbandCsv))
+os.system(str("/bin/rm " + mbandCsv))
+os.system(str("/bin/rm " + reprojectCSV))
