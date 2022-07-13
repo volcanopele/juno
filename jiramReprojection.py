@@ -129,17 +129,25 @@ def fileParse(inputs):
 
 mapfile = ''
 outputfile = ''
+jiramInput = ''
+xOffset = 0
+yOffset = 0
 argv = sys.argv[1:]
 
 try:
-	opts, args = getopt.getopt(argv, 'm:', 'mapfile')
+	opts, args = getopt.getopt(argv, 'i:m:x:y:', ['mapfile', 'infile'])
 	for opt, arg in opts:
 		if opt in ("-m", "--mapfile"):
 			mapfile = arg
+		if opt in ("-i", "--infile"):
+			jiramInput = arg
+		if opt in ("-x"):
+			xOffset = float(arg)
+		if opt in ("-y"):
+			yOffset = float(arg)
 except getopt.GetoptError:
-	print('jiramReprojection.py -m <mapfile> -o <outputfile>')
+	print('jiramReprojection.py -m <mapfile> -i <infile>')
 	sys.exit(2)
-print(str('Map file is ' + mapfile))
 
    
 ####################
@@ -149,9 +157,20 @@ print(str('Map file is ' + mapfile))
 # initialize spice files
 spiceypy.furnsh( metakr )
 
-# things this script needs to do
-# Load JIRAM image
-jiramInput = fd.askopenfilename(title='Select JIRAM image label', filetypes=(('PDS Labels', '*.LBL'), ('All files', '*.*')))
+# Load JIRAM image if not loaded in command line
+# check to make sure that the command line input is fine
+
+if jiramInput != "":
+	jiramfile_tub = os.path.splitext(jiramInput)
+	if jiramfile_tub[1] == '.IMG':
+		jiramInput = jiramfile_tub[0] + '.LBL'
+	elif jiramfile_tub[1] == '.LBL':
+		jiramInput = jiramInput
+	else:
+		print("Input file is not a valid JIRAM image or label")
+		sys.exit()
+else:
+	jiramInput = fd.askopenfilename(title='Select JIRAM image label', filetypes=(('PDS Labels', '*.LBL'), ('All files', '*.*')))
 # load map cube
 # mapInput = fd.askopenfilename(title='Select Map Cube', filetypes=(('CUB Files', '*.cub'), ('All files', '*.*')))
 
@@ -165,8 +184,6 @@ root = os.path.dirname(jiramInput)
 name = os.path.basename(jiramInput)
 fileBase = root + '/' + productID
 
-
-
 ### REPROJECTED CUBE SETUP ###
 mapCub = fileBase + '.map.cub'
 mapPvl = fileBase + '.map'
@@ -175,12 +192,9 @@ if mapfile != "":
 	mapfile_tub = os.path.splitext(mapfile)
 	if mapfile_tub[1] == '.cub':
 		mapCub = mapfile
-		print("cube file used")
 	elif mapfile_tub[1] == '.map':
 		isis.map2map(from_=basemp, to_=mapCub, map_=mapPvl, pixres_="map", defaultrange_="map")
-		print("map file used")
 	else:
-		print("no map file provided")
 		sys.exit()
 else:
 	[spoint, trgepc, subsrfvec] = spiceypy.subpnt( method, target, etStart, tarfrm, abcorr, scname )
@@ -281,11 +295,13 @@ for i in range(0,arrayLines):
 			X = xformvec[1] - mbounds[3,1]
 			X /= dx
 			X -= 1
+			X += xOffset
 			X = int(round(X,0))
 			Y = xformvec[0] - mbounds[3,0]
 			Y /= dx
 			Y *= -1
 			Y -= 1
+			Y += yOffset
 			Y = int(round(Y,0))
 			
 			# pixel checks
