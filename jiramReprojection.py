@@ -232,10 +232,19 @@ for i in range(0,arrayLines):
 			Y -= 1
 			Y = int(round(Y,0))
 			
-			# obtain pixel value (ISIS?)
+			# pixel checks
+			pixelVisible = true
+			if Y > 128 OR Y < 0:
+				pixelVisible = false
+			if X > 432 OR X < 0:
+				pixelVisible = false
+			# add one here to check to make sure that feature is on the visible face of Io
 			
 			# paint pixel in ISIS cube pixel value from JIRAM image (or make CSV file?)
-			mapPanda.values[i][j] = mbandPanda.values[Y][X]
+			if pixelvisible:
+				mapPanda.values[i][j] = mbandPanda.values[Y][X]
+			else:
+				mapPanda.values[i][j] = -1024
 
 
 
