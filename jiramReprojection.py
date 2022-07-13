@@ -40,6 +40,7 @@ import pandas as pd
 
 # edit metakr to point to your Juno metakernel
 metakr = '/Users/perry/Dropbox/Io/Juno/kernels/juno_latest.tm'
+basemp = '/Users/perry/Dropbox/Io/map/Io_GalileoSSI-Voyager_Global_Mosaic_1km.cub'
 sclkid = -61
 scname = 'JUNO'
 target = 'IO'
@@ -62,6 +63,8 @@ tdbfmt = 'YYYY MON DD HR:MN:SC.### TDB ::TDB'
 xlsxmt = 'MM/DD/YYYY HR:MN:SC.###'
 datefmt = 'YYYY-MM-DD'
 timefmt = 'HR:MN:SC.###'
+
+delimiter=","
 
 ###########################
 ### INITALIZE FUNCTIONS ###
@@ -120,7 +123,25 @@ def fileParse(inputs):
 	# tuple with image mid-time, product ID, and orbit output by function
 	return [et, productID, orbit, etStart, exposureTime, startTime]
 
+########################
+### ARGUMENT PARSING ###
+########################
 
+mapfile = ''
+outputfile = ''
+argv = sys.argv[1:]
+
+try:
+	opts, args = getopt.getopt(argv, 'm:', 'mapfile')
+	for opt, arg in opts:
+		if opt in ("-m", "--mapfile"):
+			mapfile = arg
+except getopt.GetoptError:
+	print('jiramReprojection.py -m <mapfile> -o <outputfile>')
+	sys.exit(2)
+print(str('Map file is ' + mapfile))
+
+   
 ####################
 ### SCRIPT START ###
 ####################
@@ -132,26 +153,63 @@ spiceypy.furnsh( metakr )
 # Load JIRAM image
 jiramInput = fd.askopenfilename(title='Select JIRAM image label', filetypes=(('PDS Labels', '*.LBL'), ('All files', '*.*')))
 # load map cube
-mapInput = fd.askopenfilename(title='Select Map Cube', filetypes=(('CUB Files', '*.cub'), ('All files', '*.*')))
+# mapInput = fd.askopenfilename(title='Select Map Cube', filetypes=(('CUB Files', '*.cub'), ('All files', '*.*')))
+
+# parse label file for information about cube
+parseTuple = fileParse(jiramInput)
+etStart =  parseTuple[3]
+productID = parseTuple[1]
+
+# setup paths
+root = os.path.dirname(jiramInput)
+name = os.path.basename(jiramInput)
+fileBase = root + '/' + productID
+
+
+
+### REPROJECTED CUBE SETUP ###
+mapCub = fileBase + '.map.cub'
+mapPvl = fileBase + '.map'
+
+if mapfile != "":
+	mapfile_tub = os.path.splitext(mapfile)
+	if mapfile_tub[1] == '.cub':
+		mapCub = mapfile
+		print("cube file used")
+	elif mapfile_tub[1] == '.map':
+		isis.map2map(from_=basemp, to_=mapCub, map_=mapPvl, pixres_="map", defaultrange_="map")
+		print("map file used")
+	else:
+		print("no map file provided")
+		sys.exit()
+else:
+	[spoint, trgepc, subsrfvec] = spiceypy.subpnt( method, target, etStart, tarfrm, abcorr, scname )
+	alt = spiceypy.vnorm( subsrfvec )
+	[radius, lon, lat] = spiceypy.reclat( spoint )
+	lon = lon * spiceypy.dpr()
+	if lon <= 0.0:
+		lon = math.fabs(lon)
+	else:
+		lon = 360.0 - lon
+	lat = lat * spiceypy.dpr()
+	res = alt * 0.237767
+	res /= 10
+	mapPvl = fileBase + '.2.map'
+	mapCub = fileBase + '.map2.cub'
+	isis.maptemplate(map_=mapPvl, targopt_="user", targetname_=target, clat_=lat, clon_=lon, dist_=alt, londir_="POSITIVEWEST", projection_="POINTPERSPECTIVE", resopt_="MPP", resolution_=res, rngopt_="user", minlat_=-90, maxlat_=90, minlon_=0, maxlon_=360)
+	isis.map2map(from_=basemp, to_=mapCub, map_=mapPvl, pixres_="map", defaultrange_="map")
+	print("map cube generated")
 
 # determine size of map cube
-samples = int(isis.getkey(from_=mapInput, grpname_="Dimensions", objname_="Core", keyword_="Samples").stdout)
+samples = int(isis.getkey(from_=mapCub, grpname_="Dimensions", objname_="Core", keyword_="Samples").stdout)
 arraySamples = samples
 arraySamples -= 1
-lines = int(isis.getkey(from_=mapInput, grpname_="Dimensions", objname_="Core", keyword_="Lines").stdout)
+lines = int(isis.getkey(from_=mapCub, grpname_="Dimensions", objname_="Core", keyword_="Lines").stdout)
 arrayLines = lines
 arrayLines -= 1
 
+
 # prepare file names
-parseTuple = fileParse(jiramInput)
-
-etStart =  parseTuple[3]
-
-root = os.path.dirname(jiramInput)
-name = os.path.basename(jiramInput)
-productID = parseTuple[1]
-fileBase = root + '/' + productID
-
 imageImg = fileBase + '.IMG'
 imageCub = fileBase + '.cub'
 mirrorCub = fileBase + '.mirror.cub'
@@ -160,7 +218,6 @@ mbandCub = fileBase + '.mband.cub'
 lbandCsv = fileBase + '.lband.txt'
 mbandCsv = fileBase + '.mband.txt'
 
-mapptCSV = root+ '/output.csv'
 mapCSV = fileBase + '.map.txt'
 latitudeCub = fileBase + '.latitude.cub'
 latitudeCSV = fileBase + '.latitude.txt'
@@ -168,17 +225,16 @@ longitudeCub = fileBase + '.longitude.cub'
 longitudeCSV = fileBase + '.longitude.txt'
 reprojectCSV = fileBase + '.reprojected.csv'
 reprojectedCub = fileBase + '.reprojected.cub'
-delimiter=","
 
 # create basemap image array
-isis.isis2ascii(from_=mapInput, to_=mapCSV, header_="no", delimiter_=delimiter, setpixelvalues="yes", nullvalue_=-1024, hrsvalue_=1)
+isis.isis2ascii(from_=mapCub, to_=mapCSV, header_="no", delimiter_=delimiter, setpixelvalues="yes", nullvalue_=-1024, hrsvalue_=1)
 mapPanda = pd.read_csv(mapCSV, header=None, dtype=float)
 
 # create backplane arrays
-isis.phocube(from_=mapInput, to_=latitudeCub, source="PROJECTION", longitude="false")
+isis.phocube(from_=mapCub, to_=latitudeCub, source="PROJECTION", longitude="false")
 isis.isis2ascii(from_=latitudeCub, to_=latitudeCSV, header_="no", delimiter_=delimiter, setpixelvalues="yes", nullvalue_=-1024, hrsvalue_=1)
 latitudePanda = pd.read_csv(latitudeCSV, header=None, dtype=float)
-isis.phocube(from_=mapInput, to_=longitudeCub, source="PROJECTION", latitude="false")
+isis.phocube(from_=mapCub, to_=longitudeCub, source="PROJECTION", latitude="false")
 isis.isis2ascii(from_=longitudeCub, to_=longitudeCSV, header_="no", delimiter_=delimiter, setpixelvalues="yes", nullvalue_=-1024, hrsvalue_=1)
 longitudePanda = pd.read_csv(longitudeCSV, header=None, dtype=float)
 
@@ -233,15 +289,15 @@ for i in range(0,arrayLines):
 			Y = int(round(Y,0))
 			
 			# pixel checks
-			pixelVisible = true
-			if Y > 128 OR Y < 0:
-				pixelVisible = false
-			if X > 432 OR X < 0:
-				pixelVisible = false
+			pixelVisible = True
+			if Y > 128 or Y < 0:
+				pixelVisible = False
+			if X > 432 or X < 0:
+				pixelVisible = False
 			# add one here to check to make sure that feature is on the visible face of Io
 			
 			# paint pixel in ISIS cube pixel value from JIRAM image (or make CSV file?)
-			if pixelvisible:
+			if pixelVisible:
 				mapPanda.values[i][j] = mbandPanda.values[Y][X]
 			else:
 				mapPanda.values[i][j] = -1024
@@ -255,7 +311,7 @@ for i in range(0,arrayLines):
 # Export CSV to ISIS image
 mapPanda.to_csv(reprojectCSV, index=False, header=False)
 isis.ascii2isis(from_=reprojectCSV, to_=reprojectedCub, order_="bsq", samples_=samples, lines_=lines, bands_=1, skip_=0, setnullrange_="true", nullmin_=-2000, nullmax_=-1000)
-isis.copylabel(from_=reprojectedCub, source_=mapInput, mapping="true")
+isis.copylabel(from_=reprojectedCub, source_=mapCub, mapping="true")
 
 #############################
 ######## SCRIPT END #########
