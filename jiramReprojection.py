@@ -282,33 +282,36 @@ for i in range(0,arrayLines):
 			longitude = longitude * spiceypy.rpd()
 			spoint = spiceypy.srfrec(targid, longitude, latitude)
 			(trgepc, srfvec, phase, incdnc, emissn) = spiceypy.ilumin(method2, target, etStart, tarfrm, abcorr, scname, spoint)
-			# in JIRAM image, find pixel for lat/lon center (careful, make sure that it is visible)
 			
+			emissn = emissn * spiceypy.dpr()
+			# in JIRAM image, find pixel for lat/lon center (careful, make sure that it is visible)
+			# pixel checks initialization
+			pixelVisible = True
 			# m-band (taken from center pixel calculation in jiramgeombackplane.py)
 			# this is not providing an accurate position
 			# it should be! This isn't the broken part!
-			xform = spiceypy.pxfrm2(tarfrm, mframe, trgepc, etStart)
-			xformvec = spiceypy.mxv(xform, srfvec)
-			xformvec[0] = xformvec[0] / xformvec[2]
-			xformvec[1] = xformvec[1] / xformvec[2]
-			xformvec[2] = xformvec[2] / xformvec[2]
-			X = xformvec[1] - mbounds[3,1]
-			X /= dx
-			X -= 1
-			X += xOffset
-			X = int(round(X,0))
-			Y = xformvec[0] - mbounds[3,0]
-			Y /= dx
-			Y *= -1
-			Y -= 1
-			Y += yOffset
-			Y = int(round(Y,0))
-			
-			# pixel checks
-			pixelVisible = True
-			if Y > 128 or Y < 0:
-				pixelVisible = False
-			if X > 432 or X < 0:
+			if emissn <= 89.999:
+				xform = spiceypy.pxfrm2(tarfrm, mframe, trgepc, etStart)
+				xformvec = spiceypy.mxv(xform, srfvec)
+				xformvec[0] = xformvec[0] / xformvec[2]
+				xformvec[1] = xformvec[1] / xformvec[2]
+				xformvec[2] = xformvec[2] / xformvec[2]
+				X = xformvec[1] - mbounds[3,1]
+				X /= dx
+				X -= 1
+				X += xOffset
+				X = int(round(X,0))
+				Y = xformvec[0] - mbounds[3,0]
+				Y /= dx
+				Y *= -1
+				Y -= 1
+				Y += yOffset
+				Y = int(round(Y,0))
+				if Y > 128 or Y < 0:
+					pixelVisible = False
+				if X > 432 or X < 0:
+					pixelVisible = False
+			else:
 				pixelVisible = False
 			# add one here to check to make sure that feature is on the visible face of Io
 			
