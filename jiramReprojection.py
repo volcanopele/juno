@@ -193,6 +193,7 @@ if mapfile != "":
 	if mapfile_tub[1] == '.cub':
 		mapCub = mapfile
 	elif mapfile_tub[1] == '.map':
+		mapPvl = mapfile
 		isis.map2map(from_=basemp, to_=mapCub, map_=mapPvl, pixres_="map", defaultrange_="map")
 	else:
 		sys.exit()
@@ -285,12 +286,43 @@ for i in range(0,arrayLines):
 			
 			emissn = emissn * spiceypy.dpr()
 			# in JIRAM image, find pixel for lat/lon center (careful, make sure that it is visible)
+			
+			if emissn <= 89.999:
+				emissionGood = True
+			else:
+				emissionGood = False
 			# pixel checks initialization
-			pixelVisible = True
+			# pixelVisible = True
+			
+			# l-band support
+			if emissionGood:
+				xform = spiceypy.pxfrm2(tarfrm, lframe, trgepc, etStart)
+				xformvec = spiceypy.mxv(xform, srfvec)
+				xformvec[0] = xformvec[0] / xformvec[2]
+				xformvec[1] = xformvec[1] / xformvec[2]
+				xformvec[2] = xformvec[2] / xformvec[2]
+				X = xformvec[1] - lbounds[3,1]
+				X /= dx
+				X -= 1
+				X += xOffset
+				X = int(round(X,0))
+				Y = xformvec[0] - lbounds[3,0]
+				Y /= dx
+				Y *= -1
+				Y -= 1
+				Y += yOffset
+				Y = int(round(Y,0))
+				if Y > 127 or Y < 0 or X > 431 or X < 0:
+					lbandVisible = False
+				else:
+					lbandVisible = True
+			else:
+				lbandVisible = False
+			
 			# m-band (taken from center pixel calculation in jiramgeombackplane.py)
 			# this is not providing an accurate position
 			# it should be! This isn't the broken part!
-			if emissn <= 89.999:
+			if emissionGood and lbandVisible == False:
 				xform = spiceypy.pxfrm2(tarfrm, mframe, trgepc, etStart)
 				xformvec = spiceypy.mxv(xform, srfvec)
 				xformvec[0] = xformvec[0] / xformvec[2]
@@ -307,17 +339,20 @@ for i in range(0,arrayLines):
 				Y -= 1
 				Y += yOffset
 				Y = int(round(Y,0))
-				if Y > 128 or Y < 0:
-					pixelVisible = False
-				if X > 432 or X < 0:
-					pixelVisible = False
+				if Y > 127 or Y < 0 or X > 431 or X < 0:
+					mbandVisible = False
+				else:
+					mbandVisible = True
 			else:
-				pixelVisible = False
+				mbandVisible = False
+
 			# add one here to check to make sure that feature is on the visible face of Io
 			
 			# paint pixel in ISIS cube pixel value from JIRAM image (or make CSV file?)
-			if pixelVisible:
+			if mbandVisible:
 				mapPanda.values[i][j] = mbandPanda.values[Y][X]
+			elif lbandVisible:
+				mapPanda.values[i][j] = lbandPanda.values[Y][X]
 			else:
 				mapPanda.values[i][j] = -1024
 
