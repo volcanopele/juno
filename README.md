@@ -1,5 +1,11 @@
 # juno
-Python and Shell scripts for my Juno work
+Python and Shell scripts for my Juno work. Most of these are called independently, but some do dovetail into each other (for example, the reprojected map file generated in junogeometryinfo.py can be used in jiramReprojection.py to reproject the original JIRAM image.
+
+## Dependencies
+These scripts require the following to be installed on the system running these scripts:
+### Anaconda
+### ISIS - https://github.com/USGS-Astrogeology/ISIS3
+### in the ISIS conda environment, also install the kalasiris and matplotlib python packages
 
 ## description of scripts in this repository
 
