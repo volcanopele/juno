@@ -3,9 +3,10 @@ Python and Shell scripts for my Juno work. Most of these are called independentl
 
 ## Dependencies
 These scripts require the following to be installed on the system running these scripts:
-### Anaconda
-### ISIS - https://github.com/USGS-Astrogeology/ISIS3
-### in the ISIS conda environment, also install the kalasiris and matplotlib python packages
+
+Anaconda
+ISIS - https://github.com/USGS-Astrogeology/ISIS3
+in the ISIS conda environment, also install the kalasiris and matplotlib python packages
 
 ## description of scripts in this repository
 
