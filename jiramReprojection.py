@@ -218,10 +218,8 @@ else:
 # determine size of map cube
 samples = int(isis.getkey(from_=mapCub, grpname_="Dimensions", objname_="Core", keyword_="Samples").stdout)
 arraySamples = samples
-arraySamples -= 1
 lines = int(isis.getkey(from_=mapCub, grpname_="Dimensions", objname_="Core", keyword_="Lines").stdout)
 arrayLines = lines
-arrayLines -= 1
 
 
 # prepare file names
@@ -284,16 +282,15 @@ for i in range(0,arrayLines):
 			spoint = spiceypy.srfrec(targid, longitude, latitude)
 			(trgepc, srfvec, phase, incdnc, emissn) = spiceypy.ilumin(method2, target, etStart, tarfrm, abcorr, scname, spoint)
 			
+			# add one here to check to make sure that feature is on the visible face of Io
 			emissn = emissn * spiceypy.dpr()
-			# in JIRAM image, find pixel for lat/lon center (careful, make sure that it is visible)
-			
 			if emissn <= 89.999:
 				emissionGood = True
 			else:
 				emissionGood = False
-			# pixel checks initialization
-			# pixelVisible = True
-			
+
+			# in JIRAM image, find pixel for lat/lon center (careful, make sure that it 
+			# is visible)
 			# l-band support
 			if emissionGood:
 				xform = spiceypy.pxfrm2(tarfrm, lframe, trgepc, etStart)
@@ -345,8 +342,6 @@ for i in range(0,arrayLines):
 					mbandVisible = True
 			else:
 				mbandVisible = False
-
-			# add one here to check to make sure that feature is on the visible face of Io
 			
 			# paint pixel in ISIS cube pixel value from JIRAM image (or make CSV file?)
 			if mbandVisible:
@@ -364,7 +359,7 @@ for i in range(0,arrayLines):
 
 # Export CSV to ISIS image
 mapPanda.to_csv(reprojectCSV, index=False, header=False)
-isis.ascii2isis(from_=reprojectCSV, to_=reprojectedCub, order_="bsq", samples_=samples, lines_=lines, bands_=1, skip_=0, setnullrange_="true", nullmin_=-2000, nullmax_=-1000)
+isis.ascii2isis(from_=reprojectCSV, to_=reprojectedCub, order_="bsq", samples_=samples, lines_=lines, bands_=1, skip_=0, setnullrange_="true", nullmin_=-2000, nullmax_=0)
 isis.copylabel(from_=reprojectedCub, source_=mapCub, mapping="true")
 
 #############################
