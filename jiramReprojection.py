@@ -355,7 +355,7 @@ for i in range(0,arrayLines):
 
 # Export CSV to ISIS image
 mapPanda.to_csv(reprojectCSV, index=False, header=False)
-isis.ascii2isis(from_=reprojectCSV, to_=reprojectedCub, order_="bsq", samples_=samples, lines_=lines, bands_=1, skip_=0, setnullrange_="true", nullmin_=-2000, nullmax_=0)
+isis.ascii2isis(from_=reprojectCSV, to_=reprojectedCub, order_="bsq", samples_=samples, lines_=lines, bands_=1, skip_=0, setnullrange_="true", nullmin_=-2000, nullmax_=-1000)
 isis.copylabel(from_=reprojectedCub, source_=mapCub, mapping="true")
 
 #############################
