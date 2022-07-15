@@ -325,13 +325,11 @@ for i in range(0,arrayLines):
 				xformvec[2] = xformvec[2] / xformvec[2]
 				X = xformvec[1] - mbounds[3,1]
 				X /= dx
-				X -= 1
 				X += xOffset
 				X = int(round(X,0))
 				Y = xformvec[0] - mbounds[3,0]
 				Y /= dx
 				Y *= -1
-				Y -= 1
 				Y += yOffset
 				Y = int(round(Y,0))
 				if Y > 127 or Y < 0 or X > 431 or X < 0:
