@@ -485,6 +485,7 @@ for file in inputFiles:
 	# time to merge some of these products into ISIS files if the original image exists
 	if dataType == 'IMAGE':
 		image = fileBase + '.IMG'
+		imageCSV = fileBase + '.csv'
 		pixelUnit = 'W/(m^2*sr)'
 		filters = 'L-BAND M-BAND'
 		filterName = 'L-BAND'
@@ -494,6 +495,7 @@ for file in inputFiles:
 		samples = 432
 	elif dataType == 'SPECTRAL':
 		image = fileBase + '.DAT'
+		imageCSV = fileBase + '.csv'
 		pixelUnit = 'W/(m^2*sr*micron)'
 		filters = 'SPECTROMETER'
 		filterName = 'SPECTROMETER'
@@ -555,7 +557,8 @@ for file in inputFiles:
 		isis.editlab(from_=mirrorCub, option="addkey", grpname="BandBin", keyword="Center", value=filterCenter)
 		isis.editlab(from_=mirrorCub, option="addkey", grpname="BandBin", keyword="Width", value=filterWidth)
 		isis.editlab(from_=mirrorCub, option="addkey", grpname="BandBin", keyword="NaifIkCode", value=naifCode)
-		
+		isis.isis2ascii(from_=mirrorCub, to_=imageCSV, header_="no", delimiter_=delimiter, setpixelvalues="yes", nullvalue_=-1024, hrsvalue_=1)
+
 		# generate cubes file sfor each backplane using the backplanecubegen function
 		latitudeCube = backplanecubegen("latitude", "Latitude")
 		longitudeCube = backplanecubegen("longitude", "Longitude")
