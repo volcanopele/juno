@@ -557,7 +557,7 @@ for file in inputFiles:
 		isis.editlab(from_=mirrorCub, option="addkey", grpname="BandBin", keyword="Center", value=filterCenter)
 		isis.editlab(from_=mirrorCub, option="addkey", grpname="BandBin", keyword="Width", value=filterWidth)
 		isis.editlab(from_=mirrorCub, option="addkey", grpname="BandBin", keyword="NaifIkCode", value=naifCode)
-		isis.isis2ascii(from_=mirrorCub, to_=imageCSV, header_="no", delimiter_=delimiter, setpixelvalues="yes", nullvalue_=-1024, hrsvalue_=1)
+		isis.isis2ascii(from_=mirrorCub, to_=imageCSV, header_="no", delimiter_=",", setpixelvalues="yes", nullvalue_=-1024, hrsvalue_=1)
 
 		# generate cubes file sfor each backplane using the backplanecubegen function
 		latitudeCube = backplanecubegen("latitude", "Latitude")

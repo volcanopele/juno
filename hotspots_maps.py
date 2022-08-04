@@ -27,7 +27,7 @@ method2 = 'ELLIPSOID'
 stepsz = 1.0
 step = 4800
 
-file = '/Users/perry/Dropbox/Io/Juno/PJ37/PJ37_hotspots.csv'
+file = '/Users/perry/Dropbox/Io/Juno/PJ27/PJ27_hotspots.csv'
 
 csvarray = pd.read_csv(file, delimiter=',')
 hotspots = [tuple(row) for row in csvarray.values]
