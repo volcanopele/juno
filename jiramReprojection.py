@@ -110,6 +110,11 @@ def fileParse(inputs):
 			orbits = orbit.split(" ")
 			orbits = sorted(orbits, reverse=True)
 			orbit = orbits[2]
+		elif 'LINES' in line:
+			imgLines = line
+			imgLiness = imgLines.split(" ")
+			imgLiness = sorted(imgLiness, reverse=True)
+			imgLines = imgLiness[2]
 	# start and stop time converted to seconds past J2000
 	etStart = spiceypy.scs2e(-61999,startTime)
 	etStop = spiceypy.scs2e(-61999,stopTime)
@@ -121,7 +126,7 @@ def fileParse(inputs):
 	file.close()
 	
 	# tuple with image mid-time, product ID, and orbit output by function
-	return [et, productID, orbit, etStart, exposureTime, startTime]
+	return [et, productID, orbit, etStart, exposureTime, startTime, imgLines]
 
 ########################
 ### ARGUMENT PARSING ###
@@ -178,6 +183,7 @@ else:
 parseTuple = fileParse(jiramInput)
 etStart =  parseTuple[3]
 productID = parseTuple[1]
+imgLines = parseTuple[6]
 
 # setup paths
 root = os.path.dirname(jiramInput)
@@ -249,9 +255,7 @@ isis.isis2ascii(from_=longitudeCub, to_=longitudeCSV, header_="no", delimiter_=d
 longitudePanda = pd.read_csv(longitudeCSV, header=None, dtype=float)
 
 # create JIRAM image arrays
-isis.raw2isis(from_=imageImg, to_=imageCub, samples_=432, lines_=256, bands_=1, bittype_="REAL")
-imgLines = int(isis.getkey(from_=imageCub, grpname_="Dimensions", objname_="Core", keyword_="Lines").stdout)
-
+isis.raw2isis(from_=imageImg, to_=imageCub, samples_=432, lines_=imgLines, bands_=1, bittype_="REAL")
 if imgLines == 256:
 	lBandavailable = True
 else:
@@ -381,9 +385,9 @@ os.system(str("/bin/rm " + longitudeCub))
 os.system(str("/bin/rm " + longitudeCSV))
 os.system(str("/bin/rm " + imageCub))
 os.system(str("/bin/rm " + mirrorCub))
-os.system(str("/bin/rm " + mbandCub))
 os.system(str("/bin/rm " + mbandCsv))
 os.system(str("/bin/rm " + reprojectCSV))
 if lBandavailable:
 	os.system(str("/bin/rm " + lbandCub))
 	os.system(str("/bin/rm " + lbandCsv))
+	os.system(str("/bin/rm " + mbandCub))
