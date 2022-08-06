@@ -219,7 +219,6 @@ arraySamples = samples
 lines = int(isis.getkey(from_=mapCub, grpname_="Dimensions", objname_="Core", keyword_="Lines").stdout)
 arrayLines = lines
 
-
 # prepare file names
 imageImg = fileBase + '.IMG'
 imageCub = fileBase + '.cub'
@@ -251,11 +250,21 @@ longitudePanda = pd.read_csv(longitudeCSV, header=None, dtype=float)
 
 # create JIRAM image arrays
 isis.raw2isis(from_=imageImg, to_=imageCub, samples_=432, lines_=256, bands_=1, bittype_="REAL")
+imgLines = int(isis.getkey(from_=imageCub, grpname_="Dimensions", objname_="Core", keyword_="Lines").stdout)
+
+if imgLines == 256:
+	lBandavailable = True
+else:
+	lBandavailable = False
+
 isis.mirror(from_=imageCub, to_=mirrorCub)
-isis.crop(from_=mirrorCub, to_=lbandCub, line_=1, nlines_=128)
-isis.crop(from_=mirrorCub, to_=mbandCub, line_=129, nlines_=128)
-isis.isis2ascii(from_=lbandCub, to_=lbandCsv, header_="no", delimiter_=delimiter, setpixelvalues="yes", nullvalue_=-1024, hrsvalue_=1)
-lbandPanda = pd.read_csv(lbandCsv, header=None, dtype=float)
+if lBandavailable:
+	isis.crop(from_=mirrorCub, to_=lbandCub, line_=1, nlines_=128)
+	isis.crop(from_=mirrorCub, to_=mbandCub, line_=129, nlines_=128)
+	isis.isis2ascii(from_=lbandCub, to_=lbandCsv, header_="no", delimiter_=delimiter, setpixelvalues="yes", nullvalue_=-1024, hrsvalue_=1)
+	lbandPanda = pd.read_csv(lbandCsv, header=None, dtype=float)
+else:
+	mbandCub = mirrorCub
 isis.isis2ascii(from_=mbandCub, to_=mbandCsv, header_="no", delimiter_=delimiter, setpixelvalues="yes", nullvalue_=-1024, hrsvalue_=1)
 mbandPanda = pd.read_csv(mbandCsv, header=None, dtype=float)
 
@@ -290,7 +299,7 @@ for i in range(0,arrayLines):
 			# in JIRAM image, find pixel for lat/lon center (careful, make sure that it 
 			# is visible)
 			# l-band support
-			if emissionGood:
+			if emissionGood and lBandavailable:
 				xform = spiceypy.pxfrm2(tarfrm, lframe, trgepc, etStart)
 				xformvec = spiceypy.mxv(xform, srfvec)
 				xformvec[0] = xformvec[0] / xformvec[2]
@@ -372,8 +381,9 @@ os.system(str("/bin/rm " + longitudeCub))
 os.system(str("/bin/rm " + longitudeCSV))
 os.system(str("/bin/rm " + imageCub))
 os.system(str("/bin/rm " + mirrorCub))
-os.system(str("/bin/rm " + lbandCub))
 os.system(str("/bin/rm " + mbandCub))
-os.system(str("/bin/rm " + lbandCsv))
 os.system(str("/bin/rm " + mbandCsv))
 os.system(str("/bin/rm " + reprojectCSV))
+if lBandavailable:
+	os.system(str("/bin/rm " + lbandCub))
+	os.system(str("/bin/rm " + lbandCsv))
