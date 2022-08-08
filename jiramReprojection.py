@@ -183,7 +183,7 @@ else:
 parseTuple = fileParse(jiramInput)
 etStart =  parseTuple[3]
 productID = parseTuple[1]
-imgLines = parseTuple[6]
+imgLines = int(parseTuple[6])
 
 # setup paths
 root = os.path.dirname(jiramInput)
@@ -241,10 +241,13 @@ longitudeCub = fileBase + '.longitude.cub'
 longitudeCSV = fileBase + '.longitude.txt'
 reprojectCSV = fileBase + '.reprojected.csv'
 reprojectedCub = fileBase + '.reprojected.cub'
+fluxCSV = fileBase + '.reprojectedflux.csv'
+fluxCub = fileBase + '.reprojectedflux.cub'
 
 # create basemap image array
 isis.isis2ascii(from_=mapCub, to_=mapCSV, header_="no", delimiter_=delimiter, setpixelvalues="yes", nullvalue_=-1024, hrsvalue_=1)
 mapPanda = pd.read_csv(mapCSV, header=None, dtype=float)
+mapPanda2 = pd.read_csv(mapCSV, header=None, dtype=float)
 
 # create backplane arrays
 isis.phocube(from_=mapCub, to_=latitudeCub, source="PROJECTION", longitude="false")
@@ -267,6 +270,7 @@ if lBandavailable:
 	isis.crop(from_=mirrorCub, to_=mbandCub, line_=129, nlines_=128)
 	isis.isis2ascii(from_=lbandCub, to_=lbandCsv, header_="no", delimiter_=delimiter, setpixelvalues="yes", nullvalue_=-1024, hrsvalue_=1)
 	lbandPanda = pd.read_csv(lbandCsv, header=None, dtype=float)
+	print("Split PDS image into L-band and M-band images")
 else:
 	mbandCub = mirrorCub
 isis.isis2ascii(from_=mbandCub, to_=mbandCsv, header_="no", delimiter_=delimiter, setpixelvalues="yes", nullvalue_=-1024, hrsvalue_=1)
@@ -294,8 +298,8 @@ for i in range(0,arrayLines):
 			(trgepc, srfvec, phase, incdnc, emissn) = spiceypy.ilumin(method2, target, etStart, tarfrm, abcorr, scname, spoint)
 			
 			# add one here to check to make sure that feature is on the visible face of Io
-			emissn = emissn * spiceypy.dpr()
-			if emissn <= 89.999:
+			emissndeg = emissn * spiceypy.dpr()
+			if emissndeg <= 89.999:
 				emissionGood = True
 			else:
 				emissionGood = False
@@ -355,21 +359,36 @@ for i in range(0,arrayLines):
 			# paint pixel in ISIS cube pixel value from JIRAM image (or make CSV file?)
 			if mbandVisible:
 				mapPanda.values[i][j] = mbandPanda.values[Y][X]
+				pixelArea = dx * spiceypy.vnorm(srfvec) * 1000
+				pixelArea = pixelArea * pixelArea
+				pixelValue = mbandPanda.values[Y][X] * math.pi * pixelArea
+				cosi = math.cos(emissn)
+				pixelValue = pixelValue / cosi
+				pixelValue /= 1000000
+				mapPanda2.values[i][j] = pixelValue
 			elif lbandVisible:
 				mapPanda.values[i][j] = lbandPanda.values[Y][X]
+				pixelArea = dx * spiceypy.vnorm(srfvec) * 1000
+				pixelArea = pixelArea * pixelArea
+				pixelValue = lbandPanda.values[Y][X] * math.pi * pixelArea
+				cosi = math.cos(emissn)
+				pixelValue = pixelValue / cosi
+				pixelValue /= 1000000
+				mapPanda2.values[i][j] = pixelValue
 			else:
 				mapPanda.values[i][j] = -1024
-
-
-
-# obtain pixel value (ISIS?)
-
-
-
+				mapPanda2.values[i][j] = -1024
+				
 # Export CSV to ISIS image
 mapPanda.to_csv(reprojectCSV, index=False, header=False)
 isis.ascii2isis(from_=reprojectCSV, to_=reprojectedCub, order_="bsq", samples_=samples, lines_=lines, bands_=1, skip_=0, setnullrange_="true", nullmin_=-2000, nullmax_=-1000)
 isis.copylabel(from_=reprojectedCub, source_=mapCub, mapping="true")
+
+# Export MW Flux CSV to ISIS image
+mapPanda2.to_csv(fluxCSV, index=False, header=False)
+isis.ascii2isis(from_=fluxCSV, to_=fluxCub, order_="bsq", samples_=samples, lines_=lines, bands_=1, skip_=0, setnullrange_="true", nullmin_=-2000, nullmax_=-1000)
+isis.copylabel(from_=fluxCub, source_=mapCub, mapping="true")
+
 
 #############################
 ######## SCRIPT END #########
@@ -387,6 +406,7 @@ os.system(str("/bin/rm " + imageCub))
 os.system(str("/bin/rm " + mirrorCub))
 os.system(str("/bin/rm " + mbandCsv))
 os.system(str("/bin/rm " + reprojectCSV))
+os.system(str("/bin/rm " + fluxCSV))
 if lBandavailable:
 	os.system(str("/bin/rm " + lbandCub))
 	os.system(str("/bin/rm " + lbandCsv))
