@@ -110,11 +110,13 @@ def fileParse(inputs):
 			orbits = orbit.split(" ")
 			orbits = sorted(orbits, reverse=True)
 			orbit = orbits[2]
-		elif 'LINES' in line:
-			imgLines = line
-			imgLiness = imgLines.split(" ")
-			imgLiness = sorted(imgLiness, reverse=True)
-			imgLines = imgLiness[2]
+		elif 'INSTRUMENT_MODE_ID' in line:
+			instrumentMode = line
+			instrumentModes = instrumentMode.split(" ")
+			instrumentModes = sorted(instrumentModes, reverse=True)
+			instrumentMode = instrumentModes[0]
+			instrumentModes = instrumentMode.split("_")
+			instrumentMode = instrumentModes[1]
 	# start and stop time converted to seconds past J2000
 	etStart = spiceypy.scs2e(-61999,startTime)
 	etStop = spiceypy.scs2e(-61999,stopTime)
@@ -126,7 +128,7 @@ def fileParse(inputs):
 	file.close()
 	
 	# tuple with image mid-time, product ID, and orbit output by function
-	return [et, productID, orbit, etStart, exposureTime, startTime, imgLines]
+	return [et, productID, orbit, etStart, exposureTime, startTime, instrumentMode]
 
 ########################
 ### ARGUMENT PARSING ###
@@ -183,7 +185,7 @@ else:
 parseTuple = fileParse(jiramInput)
 etStart =  parseTuple[3]
 productID = parseTuple[1]
-imgLines = int(parseTuple[6])
+instrumentMode = parseTuple[6]
 
 # setup paths
 root = os.path.dirname(jiramInput)
@@ -255,11 +257,23 @@ isis.isis2ascii(from_=longitudeCub, to_=longitudeCSV, header_="no", delimiter_=d
 longitudePanda = pd.read_csv(longitudeCSV, header=None, dtype=float)
 
 # create JIRAM image arrays
-isis.raw2isis(from_=imageImg, to_=imageCub, samples_=432, lines_=imgLines, bands_=1, bittype_="REAL")
-if imgLines == 256:
+if instrumentMode == "I1":
 	lBandavailable = True
-else:
+	mBandavailable = True
+	imgLines = 256
+elif instrumentMode == "I2":
 	lBandavailable = False
+	mBandavailable = True
+	imgLines = 128
+elif instrumentMode == "I3":
+	lBandavailable = True
+	mBandavailable = False
+	imgLines = 128
+else:
+	print("Incorrect Image Mode")
+	sys.exit()
+
+isis.raw2isis(from_=imageImg, to_=imageCub, samples_=432, lines_=imgLines, bands_=1, bittype_="REAL")
 
 isis.mirror(from_=imageCub, to_=mirrorCub)
 if lBandavailable:
