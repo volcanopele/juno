@@ -474,8 +474,6 @@ for file in inputFiles:
 			offsetFile.close()
 		
 		if instrumentMode == "I1":
-			lBandavailable = True
-			mBandavailable = True
 			imgLines = 256
 			filters = 'L-BAND M-BAND'
 			filterName = 'L-BAND'
@@ -485,8 +483,6 @@ for file in inputFiles:
 			backplanegen(lbandfrm, derivedX, derivedY, trgepc)
 			backplanegen(mbandfrm, derivedX, derivedY, trgepc)
 		elif instrumentMode == "I2":
-			lBandavailable = False
-			mBandavailable = True
 			imgLines = 128
 			filters = 'M-BAND'
 			filterName = 'M-BAND'
@@ -495,8 +491,6 @@ for file in inputFiles:
 			naifCode = mbandfrm
 			backplanegen(mbandfrm, derivedX, derivedY, trgepc)
 		elif instrumentMode == "I3":
-			lBandavailable = True
-			mBandavailable = False
 			imgLines = 128
 			filters = 'L-BAND'
 			filterName = 'L-BAND'
