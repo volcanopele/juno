@@ -141,13 +141,11 @@ def coordinates(frmcode, tarfrm, trgepc, etStart, srfvec, xOffset, yOffset):
 	xformvec[2] = xformvec[2] / xformvec[2]
 	X = xformvec[1] - bounds[3,1]
 	X /= dx
-	X -= 1
 	X += xOffset
 	X = int(round(X,0))
 	Y = xformvec[0] - bounds[3,0]
 	Y /= dx
 	Y *= -1
-	Y -= 1
 	Y += yOffset
 	Y = int(round(Y,0))
 	return X, Y
@@ -318,10 +316,10 @@ elif instrumentMode == "I3":
 
 
 # camera variables
-dx = 0.000237767
-dy = 0.000237767
-[mshape, mframe, mbsight, mnbounds, mbounds] = spiceypy.getfov(mbandfrm, 20)
-[lshape, lframe, lbsight, lnbounds, lbounds] = spiceypy.getfov(lbandfrm, 20)
+# dx = 0.000237767
+# dy = 0.000237767
+# [mshape, mframe, mbsight, mnbounds, mbounds] = spiceypy.getfov(mbandfrm, 20)
+# [lshape, lframe, lbsight, lnbounds, lbounds] = spiceypy.getfov(lbandfrm, 20)
 
 print("Setup Complete")
 

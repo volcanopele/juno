@@ -163,6 +163,13 @@ def fileParse(inputs):
 			orbits = orbit.split(" ")
 			orbits = sorted(orbits, reverse=True)
 			orbit = orbits[2]
+		elif 'INSTRUMENT_MODE_ID' in line:
+			instrumentMode = line
+			instrumentModes = instrumentMode.split(" ")
+			instrumentModes = sorted(instrumentModes, reverse=True)
+			instrumentMode = instrumentModes[0]
+			instrumentModes = instrumentMode.split("_")
+			instrumentMode = instrumentModes[1]
 	# start and stop time converted to seconds past J2000
 	etStart = spiceypy.scs2e(-61999,startTime)
 	etStop = spiceypy.scs2e(-61999,stopTime)
@@ -174,7 +181,7 @@ def fileParse(inputs):
 	file.close()
 	
 	# tuple with image mid-time, product ID, and orbit output by function
-	return [et, productID, orbit, etStart, exposureTime, startTime, productCreate, sequenceNum, sequenceSam, dataType]
+	return [et, productID, orbit, etStart, exposureTime, startTime, productCreate, sequenceNum, sequenceSam, dataType, instrumentMode]
 
 # backplanegen is used on JUNO_JIRAM_I data and generates CSV files containing
 # geometric and illumination information for each pixel. The files generated are: 
