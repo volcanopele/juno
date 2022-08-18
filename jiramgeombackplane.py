@@ -163,6 +163,13 @@ def fileParse(inputs):
 			orbits = orbit.split(" ")
 			orbits = sorted(orbits, reverse=True)
 			orbit = orbits[2]
+		elif 'INSTRUMENT_MODE_ID' in line:
+			instrumentMode = line
+			instrumentModes = instrumentMode.split(" ")
+			instrumentModes = sorted(instrumentModes, reverse=True)
+			instrumentMode = instrumentModes[0]
+			instrumentModes = instrumentMode.split("_")
+			instrumentMode = instrumentModes[1]
 	# start and stop time converted to seconds past J2000
 	etStart = spiceypy.scs2e(-61999,startTime)
 	etStop = spiceypy.scs2e(-61999,stopTime)
@@ -174,7 +181,7 @@ def fileParse(inputs):
 	file.close()
 	
 	# tuple with image mid-time, product ID, and orbit output by function
-	return [et, productID, orbit, etStart, exposureTime, startTime, productCreate, sequenceNum, sequenceSam, dataType]
+	return [et, productID, orbit, etStart, exposureTime, startTime, productCreate, sequenceNum, sequenceSam, dataType, instrumentMode]
 
 # backplanegen is used on JUNO_JIRAM_I data and generates CSV files containing
 # geometric and illumination information for each pixel. The files generated are: 
@@ -385,7 +392,7 @@ def specbackplanegen():
 def backplanecubegen(backplane, bpName):
 	csvFile = fileBase + '_' + backplane + '.csv'
 	cubFile = fileBase + '.' + backplane + '.cub'
-	isis.ascii2isis(from_=csvFile, to_=cubFile, order_="bsq", samples_=samples, lines_=256, bands_=1, skip_=0, setnullrange_="true", nullmin_=-2000, nullmax_=-1000)
+	isis.ascii2isis(from_=csvFile, to_=cubFile, order_="bsq", samples_=samples, lines_=imgLines, bands_=1, skip_=0, setnullrange_="true", nullmin_=-2000, nullmax_=-1000)
 	isis.editlab(from_=cubFile, opt_="addg", grpname_="BandBin")
 	isis.editlab(from_=cubFile, option="addkey", grpname="BandBin", keyword="FilterName", value=bpName)
 	isis.editlab(from_=cubFile, option="addkey", grpname="BandBin", keyword="Center", value=filterCenter)
@@ -423,6 +430,7 @@ for file in inputFiles:
 	sequenceNum = parseTuple[7]
 	sequenceSam = parseTuple[8]
 	dataType = parseTuple[9]
+	instrumentMode = parseTuple[10]
 	
 	# setup output files
 	# first generate the file names for each parameter CSV file
@@ -465,9 +473,43 @@ for file in inputFiles:
 					break
 			offsetFile.close()
 		
+		if instrumentMode == "I1":
+			lBandavailable = True
+			mBandavailable = True
+			imgLines = 256
+			filters = 'L-BAND M-BAND'
+			filterName = 'L-BAND'
+			filterCenter = 3455
+			filterWidth = 290
+			naifCode = lbandfrm
+			backplanegen(lbandfrm, derivedX, derivedY, trgepc)
+			backplanegen(mbandfrm, derivedX, derivedY, trgepc)
+		elif instrumentMode == "I2":
+			lBandavailable = False
+			mBandavailable = True
+			imgLines = 128
+			filters = 'M-BAND'
+			filterName = 'M-BAND'
+			filterCenter = 4780
+			filterWidth = 290
+			naifCode = mbandfrm
+			backplanegen(mbandfrm, derivedX, derivedY, trgepc)
+		elif instrumentMode == "I3":
+			lBandavailable = True
+			mBandavailable = False
+			imgLines = 128
+			filters = 'L-BAND'
+			filterName = 'L-BAND'
+			filterCenter = 3455
+			filterWidth = 290
+			naifCode = lbandfrm
+			backplanegen(lbandfrm, derivedX, derivedY, trgepc)
+		else:
+			print("Incorrect Image Mode")
+			sys.exit()
+		
 		# these two lines actually do all the "real" work of generating backplane CSV files
-		backplanegen(lbandfrm, derivedX, derivedY, trgepc)
-		backplanegen(mbandfrm, derivedX, derivedY, trgepc)
+		
 	elif dataType == 'SPECTRAL':
 		specbackplanegen()
 	
@@ -487,11 +529,6 @@ for file in inputFiles:
 		image = fileBase + '.IMG'
 		imageCSV = fileBase + '.csv'
 		pixelUnit = 'W/(m^2*sr)'
-		filters = 'L-BAND M-BAND'
-		filterName = 'L-BAND'
-		filterCenter = 3455
-		filterWidth = 290
-		naifCode = lbandfrm
 		samples = 432
 	elif dataType == 'SPECTRAL':
 		image = fileBase + '.DAT'
@@ -503,13 +540,14 @@ for file in inputFiles:
 		filterWidth = 1500
 		naifCode = specfrm
 		samples = 336
+		imgLines = 256
 		
 	if os.path.exists(image):
 		imageCub = fileBase + '.cub'
 		mirrorCub = fileBase + '.mirror.cub'
 	
 		# convert IMG to ISIS cube and mirror it (to match geometry)
-		isis.raw2isis(from_=image, to_=imageCub, samples_=samples, lines_=256, bands_=1, bittype_="REAL")
+		isis.raw2isis(from_=image, to_=imageCub, samples_=samples, lines_=imgLines, bands_=1, bittype_="REAL")
 		if dataType == 'IMAGE':
 			isis.mirror(from_=imageCub, to_=mirrorCub)
 		else:
@@ -558,7 +596,7 @@ for file in inputFiles:
 		isis.editlab(from_=mirrorCub, option="addkey", grpname="BandBin", keyword="Width", value=filterWidth)
 		isis.editlab(from_=mirrorCub, option="addkey", grpname="BandBin", keyword="NaifIkCode", value=naifCode)
 		isis.isis2ascii(from_=mirrorCub, to_=imageCSV, header_="no", delimiter_=",", setpixelvalues="yes", nullvalue_=-1024, hrsvalue_=1)
-		os.system(str("mv " + imageCSV + ".txt" imageCSV))
+		os.system(str("mv " + imageCSV + ".txt " + imageCSV))
 		
 		# generate cubes file sfor each backplane using the backplanecubegen function
 		latitudeCube = backplanecubegen("latitude", "Latitude")

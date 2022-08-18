@@ -130,6 +130,26 @@ def fileParse(inputs):
 	# tuple with image mid-time, product ID, and orbit output by function
 	return [et, productID, orbit, etStart, exposureTime, startTime, instrumentMode]
 
+def coordinates(frmcode, tarfrm, trgepc, etStart, srfvec, xOffset, yOffset):
+	[shape, frame, bsight, nbounds, bounds] = spiceypy.getfov(frmcode, 20)
+	dx = 0.000237767
+	dy = 0.000237767
+	xform = spiceypy.pxfrm2(tarfrm, frame, trgepc, etStart)
+	xformvec = spiceypy.mxv(xform, srfvec)
+	xformvec[0] = xformvec[0] / xformvec[2]
+	xformvec[1] = xformvec[1] / xformvec[2]
+	xformvec[2] = xformvec[2] / xformvec[2]
+	X = xformvec[1] - bounds[3,1]
+	X /= dx
+	X += xOffset
+	X = int(round(X,0))
+	Y = xformvec[0] - bounds[3,0]
+	Y /= dx
+	Y *= -1
+	Y += yOffset
+	Y = int(round(Y,0))
+	return X, Y
+
 ########################
 ### ARGUMENT PARSING ###
 ########################
@@ -276,22 +296,30 @@ else:
 isis.raw2isis(from_=imageImg, to_=imageCub, samples_=432, lines_=imgLines, bands_=1, bittype_="REAL")
 
 isis.mirror(from_=imageCub, to_=mirrorCub)
-if lBandavailable:
+
+if instrumentMode == "I1":
 	isis.crop(from_=mirrorCub, to_=lbandCub, line_=1, nlines_=128)
 	isis.crop(from_=mirrorCub, to_=mbandCub, line_=129, nlines_=128)
 	isis.isis2ascii(from_=lbandCub, to_=lbandCsv, header_="no", delimiter_=delimiter, setpixelvalues="yes", nullvalue_=-1024, hrsvalue_=1)
 	lbandPanda = pd.read_csv(lbandCsv, header=None, dtype=float)
+	isis.isis2ascii(from_=mbandCub, to_=mbandCsv, header_="no", delimiter_=delimiter, setpixelvalues="yes", nullvalue_=-1024, hrsvalue_=1)
+	mbandPanda = pd.read_csv(mbandCsv, header=None, dtype=float)
 	print("Split PDS image into L-band and M-band images")
-else:
+elif instrumentMode == "I2":
 	mbandCub = mirrorCub
-isis.isis2ascii(from_=mbandCub, to_=mbandCsv, header_="no", delimiter_=delimiter, setpixelvalues="yes", nullvalue_=-1024, hrsvalue_=1)
-mbandPanda = pd.read_csv(mbandCsv, header=None, dtype=float)
+	isis.isis2ascii(from_=mbandCub, to_=mbandCsv, header_="no", delimiter_=delimiter, setpixelvalues="yes", nullvalue_=-1024, hrsvalue_=1)
+	mbandPanda = pd.read_csv(mbandCsv, header=None, dtype=float)
+elif instrumentMode == "I3":
+	lbandCub = mirrorCub
+	isis.isis2ascii(from_=lbandCub, to_=lbandCsv, header_="no", delimiter_=delimiter, setpixelvalues="yes", nullvalue_=-1024, hrsvalue_=1)
+	lbandPanda = pd.read_csv(lbandCsv, header=None, dtype=float)
+
 
 # camera variables
-dx = 0.000237767
-dy = 0.000237767
-[mshape, mframe, mbsight, mnbounds, mbounds] = spiceypy.getfov(mbandfrm, 20)
-[lshape, lframe, lbsight, lnbounds, lbounds] = spiceypy.getfov(lbandfrm, 20)
+# dx = 0.000237767
+# dy = 0.000237767
+# [mshape, mframe, mbsight, mnbounds, mbounds] = spiceypy.getfov(mbandfrm, 20)
+# [lshape, lframe, lbsight, lnbounds, lbounds] = spiceypy.getfov(lbandfrm, 20)
 
 print("Setup Complete")
 
@@ -315,57 +343,94 @@ for i in range(0,arrayLines):
 			else:
 				emissionGood = False
 
+			if instrumentMode == "I1":
+				if emissionGood:
+					X, Y = coordinates(lbandfrm, tarfrm, trgepc, etStart, srfvec, xOffset, yOffset)
+					if Y > 127 or Y < 0 or X > 431 or X < 0:
+						lbandVisible = False
+					else:
+						lbandVisible = True
+				else:
+					lbandVisible = False
+				if emissionGood and lbandVisible == False:
+					X, Y = coordinates(mbandfrm, tarfrm, trgepc, etStart, srfvec, xOffset, yOffset)
+					if Y > 127 or Y < 0 or X > 431 or X < 0:
+						mbandVisible = False
+					else:
+						mbandVisible = True
+				else:
+					mbandVisible = False
+			elif instrumentMode == "I2":
+				lbandVisible = False
+				if emissionGood:
+					X, Y = coordinates(mbandfrm, tarfrm, trgepc, etStart, srfvec, xOffset, yOffset)
+					if Y > 127 or Y < 0 or X > 431 or X < 0:
+						mbandVisible = False
+					else:
+						mbandVisible = True
+				else:
+					mbandVisible = False
+			elif instrumentMode == "I3":
+				if emissionGood:
+					X, Y = coordinates(lbandfrm, tarfrm, trgepc, etStart, srfvec, xOffset, yOffset)
+					if Y > 127 or Y < 0 or X > 431 or X < 0:
+						lbandVisible = False
+					else:
+						lbandVisible = True
+				else:
+					lbandVisible = False
+				
 			# in JIRAM image, find pixel for lat/lon center (careful, make sure that it 
 			# is visible)
 			# l-band support
-			if emissionGood and lBandavailable:
-				xform = spiceypy.pxfrm2(tarfrm, lframe, trgepc, etStart)
-				xformvec = spiceypy.mxv(xform, srfvec)
-				xformvec[0] = xformvec[0] / xformvec[2]
-				xformvec[1] = xformvec[1] / xformvec[2]
-				xformvec[2] = xformvec[2] / xformvec[2]
-				X = xformvec[1] - lbounds[3,1]
-				X /= dx
-				X -= 1
-				X += xOffset
-				X = int(round(X,0))
-				Y = xformvec[0] - lbounds[3,0]
-				Y /= dx
-				Y *= -1
-				Y -= 1
-				Y += yOffset
-				Y = int(round(Y,0))
-				if Y > 127 or Y < 0 or X > 431 or X < 0:
-					lbandVisible = False
-				else:
-					lbandVisible = True
-			else:
-				lbandVisible = False
+# 			if emissionGood and lBandavailable:
+# 				xform = spiceypy.pxfrm2(tarfrm, lframe, trgepc, etStart)
+# 				xformvec = spiceypy.mxv(xform, srfvec)
+# 				xformvec[0] = xformvec[0] / xformvec[2]
+# 				xformvec[1] = xformvec[1] / xformvec[2]
+# 				xformvec[2] = xformvec[2] / xformvec[2]
+# 				X = xformvec[1] - lbounds[3,1]
+# 				X /= dx
+# 				X -= 1
+# 				X += xOffset
+# 				X = int(round(X,0))
+# 				Y = xformvec[0] - lbounds[3,0]
+# 				Y /= dx
+# 				Y *= -1
+# 				Y -= 1
+# 				Y += yOffset
+# 				Y = int(round(Y,0))
+# 				if Y > 127 or Y < 0 or X > 431 or X < 0:
+# 					lbandVisible = False
+# 				else:
+# 					lbandVisible = True
+# 			else:
+# 				lbandVisible = False
 			
 			# m-band (taken from center pixel calculation in jiramgeombackplane.py)
 			# this is not providing an accurate position
 			# it should be! This isn't the broken part!
-			if emissionGood and lbandVisible == False:
-				xform = spiceypy.pxfrm2(tarfrm, mframe, trgepc, etStart)
-				xformvec = spiceypy.mxv(xform, srfvec)
-				xformvec[0] = xformvec[0] / xformvec[2]
-				xformvec[1] = xformvec[1] / xformvec[2]
-				xformvec[2] = xformvec[2] / xformvec[2]
-				X = xformvec[1] - mbounds[3,1]
-				X /= dx
-				X += xOffset
-				X = int(round(X,0))
-				Y = xformvec[0] - mbounds[3,0]
-				Y /= dx
-				Y *= -1
-				Y += yOffset
-				Y = int(round(Y,0))
-				if Y > 127 or Y < 0 or X > 431 or X < 0:
-					mbandVisible = False
-				else:
-					mbandVisible = True
-			else:
-				mbandVisible = False
+# 			if emissionGood and lbandVisible == False:
+# 				xform = spiceypy.pxfrm2(tarfrm, mframe, trgepc, etStart)
+# 				xformvec = spiceypy.mxv(xform, srfvec)
+# 				xformvec[0] = xformvec[0] / xformvec[2]
+# 				xformvec[1] = xformvec[1] / xformvec[2]
+# 				xformvec[2] = xformvec[2] / xformvec[2]
+# 				X = xformvec[1] - mbounds[3,1]
+# 				X /= dx
+# 				X += xOffset
+# 				X = int(round(X,0))
+# 				Y = xformvec[0] - mbounds[3,0]
+# 				Y /= dx
+# 				Y *= -1
+# 				Y += yOffset
+# 				Y = int(round(Y,0))
+# 				if Y > 127 or Y < 0 or X > 431 or X < 0:
+# 					mbandVisible = False
+# 				else:
+# 					mbandVisible = True
+# 			else:
+# 				mbandVisible = False
 			
 			# paint pixel in ISIS cube pixel value from JIRAM image (or make CSV file?)
 			if mbandVisible:
