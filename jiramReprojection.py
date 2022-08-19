@@ -13,7 +13,45 @@ import pandas as pd
 ###### README ######
 ####################
 
-# to be completed
+# Usage:
+
+# python jiramReprojection.py 
+	# -i <full path to label file> 
+	# [-x <pixel offset>]
+	# [-y <pixel offset>] 
+	# [-m <full path to map file or cube file]
+
+# example use
+
+# python jiramReprojection.py -i /Users/perry/Dropbox/Io/Juno/PJ17/M-band/JIR_IMG_RDR_2018355T122946_V01.LBL -x -1.25 -y 2.5 -m /Users/perry/Dropbox/Io/Juno/PJ17/M-band/JIR_IMG_RDR_2018355T123147_V01.map.cub
+
+# in this case, the label for the image to be reprojected is /Users/perry/Dropbox/Io/Juno/PJ17/M-band/JIR_IMG_RDR_2018355T122946_V01.LBL
+# the spice geometry is to be offset by -1.25 pixels in the X direction and 2.5 pixels in the Y direction
+# the JIRAM image is to be reprojected to match /Users/perry/Dropbox/Io/Juno/PJ17/M-band/JIR_IMG_RDR_2018355T123147_V01.map.cub
+
+# if no offsets are included, the spice geometry will be used with no adjustment
+# if no map file or cube file is specified, the script will generate one matching the geometry of the input JIRAM image but with 5x the pixel scale
+
+# PREREQUISITES
+
+# To run this script, ISIS 7.0.0 or higher is required. Installation 
+# instructions are available at: 
+# https://github.com/USGS-Astrogeology/ISIS3#installation
+# The kalasiris python module is also required to generate ISIS cube files.
+# It is not part of the standard ISIS installation. With the isis conda 
+# environment active, run:
+
+# conda install kalasiris
+
+# this will add kalasiris to the isis conda environment. Kalasiris is a python
+# wrapper for ISIS.
+
+# output files are placed in the same directory as the input file.
+
+# REMEMBER TO EDIT THE metakr VARIABLE in LINE 80 TO MATCH THE FULL PATH TO 
+# YOUR JUNO METAKERNEL
+
+
 
 ###################################
 ###### LICENSE AND COPYRIGHT ######
