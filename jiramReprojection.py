@@ -21,6 +21,9 @@ import pandas as pd
 	# [-y <pixel offset>] 
 	# [-m <full path to map file or cube file]
 
+# i requires a JIRAM label file (extension .LBL) with a JIRAM image (extention .IMG) in the same directory
+# m accepts both a map file for use in ISIS's map2map program or a reprojected ISIS cube file
+
 # example use
 
 # python jiramReprojection.py -i /Users/perry/Dropbox/Io/Juno/PJ17/M-band/JIR_IMG_RDR_2018355T122946_V01.LBL -x -1.25 -y 2.5 -m /Users/perry/Dropbox/Io/Juno/PJ17/M-band/JIR_IMG_RDR_2018355T123147_V01.map.cub
