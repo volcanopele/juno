@@ -379,58 +379,6 @@ for i in range(0,arrayLines):
 						lbandVisible = True
 				else:
 					lbandVisible = False
-				
-			# in JIRAM image, find pixel for lat/lon center (careful, make sure that it 
-			# is visible)
-			# l-band support
-# 			if emissionGood and lBandavailable:
-# 				xform = spiceypy.pxfrm2(tarfrm, lframe, trgepc, etStart)
-# 				xformvec = spiceypy.mxv(xform, srfvec)
-# 				xformvec[0] = xformvec[0] / xformvec[2]
-# 				xformvec[1] = xformvec[1] / xformvec[2]
-# 				xformvec[2] = xformvec[2] / xformvec[2]
-# 				X = xformvec[1] - lbounds[3,1]
-# 				X /= dx
-# 				X -= 1
-# 				X += xOffset
-# 				X = int(round(X,0))
-# 				Y = xformvec[0] - lbounds[3,0]
-# 				Y /= dx
-# 				Y *= -1
-# 				Y -= 1
-# 				Y += yOffset
-# 				Y = int(round(Y,0))
-# 				if Y > 127 or Y < 0 or X > 431 or X < 0:
-# 					lbandVisible = False
-# 				else:
-# 					lbandVisible = True
-# 			else:
-# 				lbandVisible = False
-			
-			# m-band (taken from center pixel calculation in jiramgeombackplane.py)
-			# this is not providing an accurate position
-			# it should be! This isn't the broken part!
-# 			if emissionGood and lbandVisible == False:
-# 				xform = spiceypy.pxfrm2(tarfrm, mframe, trgepc, etStart)
-# 				xformvec = spiceypy.mxv(xform, srfvec)
-# 				xformvec[0] = xformvec[0] / xformvec[2]
-# 				xformvec[1] = xformvec[1] / xformvec[2]
-# 				xformvec[2] = xformvec[2] / xformvec[2]
-# 				X = xformvec[1] - mbounds[3,1]
-# 				X /= dx
-# 				X += xOffset
-# 				X = int(round(X,0))
-# 				Y = xformvec[0] - mbounds[3,0]
-# 				Y /= dx
-# 				Y *= -1
-# 				Y += yOffset
-# 				Y = int(round(Y,0))
-# 				if Y > 127 or Y < 0 or X > 431 or X < 0:
-# 					mbandVisible = False
-# 				else:
-# 					mbandVisible = True
-# 			else:
-# 				mbandVisible = False
 			
 			# paint pixel in ISIS cube pixel value from JIRAM image (or make CSV file?)
 			if mbandVisible:
