@@ -75,6 +75,11 @@ def fileParse(inputs):
 			orbits = orbit.split(" ")
 			orbits = sorted(orbits, reverse=True)
 			orbit = orbits[2]
+		elif 'INSTRUMENT_MODE_ID' in line:
+			instrumentMode = line
+			instrumentModes = instrumentMode.split(" ")
+			instrumentModes = sorted(instrumentModes, reverse=True)
+			instrumentMode = instrumentModes[0]
 	# start and stop time converted to seconds past J2000
 	etStart = spiceypy.str2et(startTime)
 	etStop = spiceypy.str2et(stopTime)
@@ -86,7 +91,7 @@ def fileParse(inputs):
 	file.close()
 	
 	# tuple with image mid-time, product ID, and orbit output by function
-	return [et, productID, orbit]
+	return [et, productID, orbit, instrumentMode, etStart]
 	
 
 	
@@ -106,7 +111,7 @@ numFiles = len(inputFiles)
 
 if numFiles > 0:
 	outputFile = open( 'test.csv', 'w' )
-	print('Perijove,Observation,Image Mid-Time (UTC),"SC Distance (Io, km)","SC Altitude (Io, km)","SC Latitude (Io IAU, deg)","SC W Longitude (Io IAU, deg)","Sub-Solar Latitude (Io IAU, deg)","Sub-Solar W Longitude (Io IAU, deg)",Phase Angle,JIRAM scale (m/pixel),JunoCAM scale (m/pixel),North Clock Angle,PS North Clock Angle', file = outputFile)
+	print('Perijove,Observation,Image Mid-Time (UTC),"SC Distance (Io, km)","SC Altitude (Io, km)","SC Latitude (Io IAU, deg)","SC W Longitude (Io IAU, deg)","Sub-Solar Latitude (Io IAU, deg)","Sub-Solar W Longitude (Io IAU, deg)",Phase Angle,JIRAM scale (m/pixel),JunoCAM scale (m/pixel),North Clock Angle,L-band Center X, L-band Center Y, M-band Center X, M-band Center Y', file = outputFile)
 	
 	for file in inputFiles:
 		parseTuple = fileParse(file)
@@ -115,6 +120,8 @@ if numFiles > 0:
 		timstr = spiceypy.timout( et, xlsxmt )
 		productID = parseTuple[1]
 		orbit = parseTuple[2]
+		instrumentMode = parseTuple[3]
+		etStart = parseTuple[4]
 	
 		# Compute the apparent state of Io as seen from JUNO in the IAU_IO frame.  
 		# All of the ephemeris readers return states in units of kilometers and
@@ -195,9 +202,37 @@ if numFiles > 0:
 		else:
 			northclockangle = raw_clock_angle
 
+		dx = 0.000237767
+		dy = 0.000237767
+		# calculate center pixel for L-band
+		[shape, frame, bsight, nbounds, bounds] = spiceypy.getfov(-61411, 20)
+		xform = spiceypy.pxfrm2(tarfrm, frame, trgepc, etStart)
+		xformsubvec = spiceypy.mxv(xform, srfvec)
+		xformsubvec[0] = xformsubvec[0] / xformsubvec[2]
+		xformsubvec[1] = xformsubvec[1] / xformsubvec[2]
+		xformsubvec[2] = xformsubvec[2] / xformsubvec[2]
+		centerXl = xformsubvec[1] - bounds[3,1]
+		centerXl /= dx
+		centerYl = xformsubvec[0] - bounds[3,0]
+		centerYl /= dx
+		centerYl *= -1
+		
+		# calculate center pixel for m-band
+		[shape, frame, bsight, nbounds, bounds] = spiceypy.getfov(-61412, 20)
+		xform = spiceypy.pxfrm2(tarfrm, frame, trgepc, etStart)
+		xformsubvec = spiceypy.mxv(xform, srfvec)
+		xformsubvec[0] = xformsubvec[0] / xformsubvec[2]
+		xformsubvec[1] = xformsubvec[1] / xformsubvec[2]
+		xformsubvec[2] = xformsubvec[2] / xformsubvec[2]
+		centerXm = xformsubvec[1] - bounds[3,1]
+		centerXm /= dx
+		centerYm = xformsubvec[0] - bounds[3,0]
+		centerYm /= dx
+		centerYm *= -1
+
 		# OUTPUT CSV LINE
 
-		print(orbit + ',' + productID + ',' + timstr + ',' + '{:.3f}'.format(dist) + ',' + '{:.3f}'.format(alt) + ',' + '{:.3f}'.format(lat * spiceypy.dpr()) + ',' + '{:.3f}'.format(lon) + ',' + '{:.3f}'.format(lat_slr * spiceypy.dpr()) + ',' + '{:.3f}'.format(lon_slr) + ',' + '{:.3f}'.format(phase*spiceypy.dpr()) + ',' + '{:.3f}'.format(jiramres) + ',' + '{:.3f}'.format(jncamres) + ',' + '{:.3f}'.format(northclockangle) + ',' + '{:.3f}'.format(raw_clock_angle), file = outputFile)
+		print(orbit + ',' + productID + ',' + timstr + ',' + '{:.3f}'.format(dist) + ',' + '{:.3f}'.format(alt) + ',' + '{:.3f}'.format(lat * spiceypy.dpr()) + ',' + '{:.3f}'.format(lon) + ',' + '{:.3f}'.format(lat_slr * spiceypy.dpr()) + ',' + '{:.3f}'.format(lon_slr) + ',' + '{:.3f}'.format(phase*spiceypy.dpr()) + ',' + '{:.3f}'.format(jiramres) + ',' + '{:.3f}'.format(jncamres) + ',' + '{:.3f}'.format(northclockangle) + ',' + '{:.3f}'.format(centerXl) + ',' + '{:.3f}'.format(centerYl) + ',' + '{:.3f}'.format(centerXm) + ',' + '{:.3f}'.format(centerYm), file = outputFile)
 else:
 	print("No files entered")
 
