@@ -20,8 +20,8 @@ from tkinter import filedialog as fd
 metakr = '/Users/perry/Dropbox/Io/Juno/kernels/juno_latest.tm'
 sclkid = -61
 scname = 'JUNO'
-target = 'IO'
-tarfrm = 'IAU_IO'
+target = 'EUROPA'
+tarfrm = 'IAU_EUROPA'
 abcorr = 'LT+S'
 jrmfrm = 'JUNO_JIRAM_I'
 jirmid = -61410
