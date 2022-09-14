@@ -109,9 +109,10 @@ for i in range(0,len(hotspotArray.index)):
 			
 		alt = spiceypy.vnorm( srfvec )
 		
-		scale = alt * 0.6727
+		scale = alt * 0.237767
 		
 		radiance = hotspotArray[2][i]
+		radiance /= 0.4975
 		radiance = radiance * math.pi
 		radiance = radiance * math.pow(scale, 2)
 		radiance = radiance / math.cos(emissn)
