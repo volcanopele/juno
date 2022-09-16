@@ -487,7 +487,7 @@ for file in inputFiles:
 			filters = 'M-BAND'
 			filterName = 'M-BAND'
 			filterCenter = 4780
-			filterWidth = 290
+			filterWidth = 480
 			naifCode = mbandfrm
 			backplanegen(mbandfrm, derivedX, derivedY, trgepc)
 		elif instrumentMode == "I3":
@@ -513,6 +513,7 @@ for file in inputFiles:
 	emissionFile.close()
 	phaseFile.close()
 	incidenceFile.close()
+		
 	
 	##################################
 	######## CUBE GENERATION #########
@@ -521,7 +522,6 @@ for file in inputFiles:
 	# time to merge some of these products into ISIS files if the original image exists
 	if dataType == 'IMAGE':
 		image = fileBase + '.IMG'
-		imageCSV = fileBase + '.csv'
 		pixelUnit = 'W/(m^2*sr)'
 		samples = 432
 	elif dataType == 'SPECTRAL':
@@ -589,21 +589,140 @@ for file in inputFiles:
 		isis.editlab(from_=mirrorCub, option="addkey", grpname="BandBin", keyword="Center", value=filterCenter)
 		isis.editlab(from_=mirrorCub, option="addkey", grpname="BandBin", keyword="Width", value=filterWidth)
 		isis.editlab(from_=mirrorCub, option="addkey", grpname="BandBin", keyword="NaifIkCode", value=naifCode)
-		isis.isis2ascii(from_=mirrorCub, to_=imageCSV, header_="no", delimiter_=",", setpixelvalues="yes", nullvalue_=-1024, hrsvalue_=1)
-		os.system(str("mv " + imageCSV + ".txt " + imageCSV))
 		
-		# generate cubes file sfor each backplane using the backplanecubegen function
+		# split or rename files
+		lbandCub = fileBase + '_lband.mirror.cub'
+		mbandCub = fileBase + '_mband.mirror.cub'
+		if instrumentMode == "I1" and dataType == 'IMAGE':
+			isis.crop(from_=mirrorCub, to_=lbandCub, line=1, nlines=128)
+			isis.crop(from_=mirrorCub, to_=mbandCub, line=129, nlines=128)
+			filterName = 'L-BAND'
+			isis.editlab(from_=lbandCub, option="MODKEY", grpname="BandBin", keyword="FilterName", value='L-BAND')
+			imageCSV = fileBase + '_lband.csv'
+			isis.isis2ascii(from_=lbandCub, to_=imageCSV, header_="no", delimiter_=",", setpixelvalues="yes", nullvalue_=-1024, hrsvalue_=1)
+			os.system(str("mv " + imageCSV + ".txt " + imageCSV))
+			filterName = 'M-BAND'
+			filterCenter = 4780
+			filterWidth = 480
+			naifCode = mbandfrm
+			isis.editlab(from_=lbandCub, option="modkey", grpname="BandBin", keyword="FilterName", value='L-BAND')
+			isis.editlab(from_=lbandCub, option="modkey", grpname="BandBin", keyword="Center", value=filterCenter)
+			isis.editlab(from_=lbandCub, option="modkey", grpname="BandBin", keyword="Width", value=filterWidth)
+			isis.editlab(from_=lbandCub, option="modkey", grpname="BandBin", keyword="NaifIkCode", value=naifCode)
+			imageCSV = fileBase + '_mband.csv'
+			isis.isis2ascii(from_=mbandCub, to_=imageCSV, header_="no", delimiter_=",", setpixelvalues="yes", nullvalue_=-1024, hrsvalue_=1)
+			os.system(str("mv " + imageCSV + ".txt " + imageCSV))
+		elif instrumentMode == "I2" and dataType == 'IMAGE':
+			os.system(str("mv " + mirrorCub + " " + mbandCub))
+			imageCSV = fileBase + '_mband.csv'
+			isis.isis2ascii(from_=mbandCub, to_=imageCSV, header_="no", delimiter_=",", setpixelvalues="yes", nullvalue_=-1024, hrsvalue_=1)
+			os.system(str("mv " + imageCSV + ".txt " + imageCSV))
+		elif instrumentMode == "I3" and dataType == 'IMAGE':
+			os.system(str("mv " + mirrorCub + " " + lbandCub))
+			imageCSV = fileBase + '_lband.csv'
+			isis.isis2ascii(from_=lbandCub, to_=imageCSV, header_="no", delimiter_=",", setpixelvalues="yes", nullvalue_=-1024, hrsvalue_=1)
+			os.system(str("mv " + imageCSV + ".txt " + imageCSV))
+		
+		# generate cubes files for each backplane using the backplanecubegen function
 		latitudeCube = backplanecubegen("latitude", "Latitude")
 		longitudeCube = backplanecubegen("longitude", "Longitude")
 		altitudeCube = backplanecubegen("altitude", "Altitude")
 		emissionCube = backplanecubegen("emission", "Emission Angle")
 		incidenceCube = backplanecubegen("incidence", "Incidence Angle")
 		phaseCube = backplanecubegen("phase", "Phase Angle")
-		
+	
 		# create merged product
 		fromlist_path = isis.fromlist.make([mirrorCub, latitudeCube, longitudeCube, altitudeCube, phaseCube, incidenceCube, emissionCube])
 		geomCub = fileBase + '.geom.cub'
 		isis.cubeit(fromlist=fromlist_path, to_=geomCub, proplab_=mirrorCub)
+		
+		# split or rename files
+		lbandCub = fileBase + '_lband.geom.cub'
+		mbandCub = fileBase + '_mband.geom.cub'
+		if instrumentMode == "I1" and dataType == 'IMAGE':
+			isis.crop(from_=geomCub, to_=lbandCub, line=1, nlines=128)
+			isis.crop(from_=geomCub, to_=mbandCub, line=129, nlines=128)
+			os.system(str("mv " + imageCSV + ".txt " + imageCSV))
+			fromCube = str(lbandCub + "+2")
+			toCSV = fileBase + '_lband_latitude.csv'
+			isis.isis2ascii(from_=fromCube, to_=toCSV, header_="no", delimiter_=",", setpixelvalues="yes", nullvalue_=-1024, hrsvalue_=1)
+			os.system(str("mv " + toCSV + ".txt " + toCSV))
+			fromCube = str(lbandCub + "+3")
+			toCSV = fileBase + '_lband_longitude.csv'
+			isis.isis2ascii(from_=fromCube, to_=toCSV, header_="no", delimiter_=",", setpixelvalues="yes", nullvalue_=-1024, hrsvalue_=1)
+			os.system(str("mv " + toCSV + ".txt " + toCSV))
+			fromCube = str(lbandCub + "+4")
+			toCSV = fileBase + '_lband_altitude.csv'
+			isis.isis2ascii(from_=fromCube, to_=toCSV, header_="no", delimiter_=",", setpixelvalues="yes", nullvalue_=-1024, hrsvalue_=1)
+			os.system(str("mv " + toCSV + ".txt " + toCSV))
+			fromCube = str(lbandCub + "+5")
+			toCSV = fileBase + '_lband_emission.csv'
+			isis.isis2ascii(from_=fromCube, to_=toCSV, header_="no", delimiter_=",", setpixelvalues="yes", nullvalue_=-1024, hrsvalue_=1)
+			os.system(str("mv " + toCSV + ".txt " + toCSV))
+			fromCube = str(lbandCub + "+6")
+			toCSV = fileBase + '_lband_incidence.csv'
+			isis.isis2ascii(from_=fromCube, to_=toCSV, header_="no", delimiter_=",", setpixelvalues="yes", nullvalue_=-1024, hrsvalue_=1)
+			os.system(str("mv " + toCSV + ".txt " + toCSV))
+			fromCube = str(lbandCub + "+7")
+			toCSV = fileBase + '_lband_phase.csv'
+			isis.isis2ascii(from_=fromCube, to_=toCSV, header_="no", delimiter_=",", setpixelvalues="yes", nullvalue_=-1024, hrsvalue_=1)
+			os.system(str("mv " + toCSV + ".txt " + toCSV))
+			
+			# now make mband csv files
+			fromCube = str(mbandCub + "+2")
+			toCSV = fileBase + '_mband_latitude.csv'
+			isis.isis2ascii(from_=fromCube, to_=toCSV, header_="no", delimiter_=",", setpixelvalues="yes", nullvalue_=-1024, hrsvalue_=1)
+			os.system(str("mv " + toCSV + ".txt " + toCSV))
+			fromCube = str(mbandCub + "+3")
+			toCSV = fileBase + '_mband_longitude.csv'
+			isis.isis2ascii(from_=fromCube, to_=toCSV, header_="no", delimiter_=",", setpixelvalues="yes", nullvalue_=-1024, hrsvalue_=1)
+			os.system(str("mv " + toCSV + ".txt " + toCSV))
+			fromCube = str(mbandCub + "+4")
+			toCSV = fileBase + '_mband_altitude.csv'
+			isis.isis2ascii(from_=fromCube, to_=toCSV, header_="no", delimiter_=",", setpixelvalues="yes", nullvalue_=-1024, hrsvalue_=1)
+			os.system(str("mv " + toCSV + ".txt " + toCSV))
+			fromCube = str(mbandCub + "+5")
+			toCSV = fileBase + '_mband_emission.csv'
+			isis.isis2ascii(from_=fromCube, to_=toCSV, header_="no", delimiter_=",", setpixelvalues="yes", nullvalue_=-1024, hrsvalue_=1)
+			os.system(str("mv " + toCSV + ".txt " + toCSV))
+			fromCube = str(mbandCub + "+6")
+			toCSV = fileBase + '_mband_incidence.csv'
+			isis.isis2ascii(from_=fromCube, to_=toCSV, header_="no", delimiter_=",", setpixelvalues="yes", nullvalue_=-1024, hrsvalue_=1)
+			os.system(str("mv " + toCSV + ".txt " + toCSV))
+			fromCube = str(mbandCub + "+7")
+			toCSV = fileBase + '_mband_phase.csv'
+			isis.isis2ascii(from_=fromCube, to_=toCSV, header_="no", delimiter_=",", setpixelvalues="yes", nullvalue_=-1024, hrsvalue_=1)
+			os.system(str("mv " + toCSV + ".txt " + toCSV))
+			
+			# remove the now extraneous csv files
+			os.system(str('/bin/rm ' + fileBase + '_latitude.csv'))
+			os.system(str('/bin/rm ' + fileBase + '_longitude.csv'))
+			os.system(str('/bin/rm ' + fileBase + '_altitude.csv'))
+			os.system(str('/bin/rm ' + fileBase + '_emission.csv'))
+			os.system(str('/bin/rm ' + fileBase + '_incidence.csv'))
+			os.system(str('/bin/rm ' + fileBase + '_phase.csv'))
+		elif instrumentMode == "I2" and dataType == 'IMAGE':
+			os.system(str("mv " + mirrorCub + " " + mbandCub))
+			imageCSV = fileBase + '_mband.csv'
+			isis.isis2ascii(from_=mbandCub, to_=imageCSV, header_="no", delimiter_=",", setpixelvalues="yes", nullvalue_=-1024, hrsvalue_=1)
+			os.system(str("mv " + imageCSV + ".txt " + imageCSV))
+			os.system(str("mv " + latitudeFile + fileBase + "_mband_latitude.csv"))
+			os.system(str("mv " + longitudeFile + fileBase + "_mband_longitude.csv"))
+			os.system(str("mv " + altitudeFile + fileBase + "_mband_altitude.csv"))
+			os.system(str("mv " + emissionFile + fileBase + "_mband_emission.csv"))
+			os.system(str("mv " + incidenceFile + fileBase + "_mband_incidence.csv"))
+			os.system(str("mv " + phaseFile + fileBase + "_mband_phase.csv"))
+		elif instrumentMode == "I3" and dataType == 'IMAGE':
+			os.system(str("mv " + mirrorCub + " " + lbandCub))
+			imageCSV = fileBase + '_lband.csv'
+			isis.isis2ascii(from_=lbandCub, to_=imageCSV, header_="no", delimiter_=",", setpixelvalues="yes", nullvalue_=-1024, hrsvalue_=1)
+			os.system(str("mv " + imageCSV + ".txt " + imageCSV))
+			os.system(str("mv " + latitudeFile + fileBase + "_lband_latitude.csv"))
+			os.system(str("mv " + longitudeFile + fileBase + "_lband_longitude.csv"))
+			os.system(str("mv " + altitudeFile + fileBase + "_lband_altitude.csv"))
+			os.system(str("mv " + emissionFile + fileBase + "_lband_emission.csv"))
+			os.system(str("mv " + incidenceFile + fileBase + "_lband_incidence.csv"))
+			os.system(str("mv " + phaseFile + fileBase + "_lband_phase.csv"))
 		
 		# clean up extraneous cube files
 		os.system(str("/bin/rm " + latitudeCube))
@@ -614,6 +733,7 @@ for file in inputFiles:
 		os.system(str("/bin/rm " + phaseCube))
 		if dataType == 'IMAGE':
 			os.system(str("/bin/rm " + imageCub))
+		
 
 #############################
 ######## SCRIPT END #########
