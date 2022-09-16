@@ -612,16 +612,7 @@ for file in inputFiles:
 			imageCSV = fileBase + '_mband.csv'
 			isis.isis2ascii(from_=mbandCub, to_=imageCSV, header_="no", delimiter_=",", setpixelvalues="yes", nullvalue_=-1024, hrsvalue_=1)
 			os.system(str("mv " + imageCSV + ".txt " + imageCSV))
-		elif instrumentMode == "I2" and dataType == 'IMAGE':
-			os.system(str("mv " + mirrorCub + " " + mbandCub))
-			imageCSV = fileBase + '_mband.csv'
-			isis.isis2ascii(from_=mbandCub, to_=imageCSV, header_="no", delimiter_=",", setpixelvalues="yes", nullvalue_=-1024, hrsvalue_=1)
-			os.system(str("mv " + imageCSV + ".txt " + imageCSV))
-		elif instrumentMode == "I3" and dataType == 'IMAGE':
-			os.system(str("mv " + mirrorCub + " " + lbandCub))
-			imageCSV = fileBase + '_lband.csv'
-			isis.isis2ascii(from_=lbandCub, to_=imageCSV, header_="no", delimiter_=",", setpixelvalues="yes", nullvalue_=-1024, hrsvalue_=1)
-			os.system(str("mv " + imageCSV + ".txt " + imageCSV))
+		
 		
 		# generate cubes files for each backplane using the backplanecubegen function
 		latitudeCube = backplanecubegen("latitude", "Latitude")
@@ -642,7 +633,6 @@ for file in inputFiles:
 		if instrumentMode == "I1" and dataType == 'IMAGE':
 			isis.crop(from_=geomCub, to_=lbandCub, line=1, nlines=128)
 			isis.crop(from_=geomCub, to_=mbandCub, line=129, nlines=128)
-			os.system(str("mv " + imageCSV + ".txt " + imageCSV))
 			fromCube = str(lbandCub + "+2")
 			toCSV = fileBase + '_lband_latitude.csv'
 			isis.isis2ascii(from_=fromCube, to_=toCSV, header_="no", delimiter_=",", setpixelvalues="yes", nullvalue_=-1024, hrsvalue_=1)
@@ -702,27 +692,33 @@ for file in inputFiles:
 			os.system(str('/bin/rm ' + fileBase + '_incidence.csv'))
 			os.system(str('/bin/rm ' + fileBase + '_phase.csv'))
 		elif instrumentMode == "I2" and dataType == 'IMAGE':
-			os.system(str("mv " + mirrorCub + " " + mbandCub))
+			mbandCub = fileBase + '_mband.mirror.cub'
 			imageCSV = fileBase + '_mband.csv'
+			os.system(str("mv " + mirrorCub + " " + mbandCub))
 			isis.isis2ascii(from_=mbandCub, to_=imageCSV, header_="no", delimiter_=",", setpixelvalues="yes", nullvalue_=-1024, hrsvalue_=1)
 			os.system(str("mv " + imageCSV + ".txt " + imageCSV))
-			os.system(str("mv " + latitudeFile + fileBase + "_mband_latitude.csv"))
-			os.system(str("mv " + longitudeFile + fileBase + "_mband_longitude.csv"))
-			os.system(str("mv " + altitudeFile + fileBase + "_mband_altitude.csv"))
-			os.system(str("mv " + emissionFile + fileBase + "_mband_emission.csv"))
-			os.system(str("mv " + incidenceFile + fileBase + "_mband_incidence.csv"))
-			os.system(str("mv " + phaseFile + fileBase + "_mband_phase.csv"))
+			mbandCub = fileBase + '_mband.geom.cub'
+			os.system(str("mv " + geomCub + " " + mbandCub))
+			os.system(str("mv " + fileBase + "_latitude.csv " + fileBase + "_mband_latitude.csv"))
+			os.system(str("mv " + fileBase + "_longitude.csv " + fileBase + "_mband_longitude.csv"))
+			os.system(str("mv " + fileBase + "_altitude.csv " + fileBase + "_mband_altitude.csv"))
+			os.system(str("mv " + fileBase + "_emission.csv " + fileBase + "_mband_emission.csv"))
+			os.system(str("mv " + fileBase + "_incidence.csv " + fileBase + "_mband_incidence.csv"))
+			os.system(str("mv " + fileBase + "_phase.csv " + fileBase + "_mband_phase.csv"))
 		elif instrumentMode == "I3" and dataType == 'IMAGE':
-			os.system(str("mv " + mirrorCub + " " + lbandCub))
+			lbandCub = fileBase + '_lband.mirror.cub'
 			imageCSV = fileBase + '_lband.csv'
+			os.system(str("mv " + mirrorCub + " " + lbandCub))
 			isis.isis2ascii(from_=lbandCub, to_=imageCSV, header_="no", delimiter_=",", setpixelvalues="yes", nullvalue_=-1024, hrsvalue_=1)
 			os.system(str("mv " + imageCSV + ".txt " + imageCSV))
-			os.system(str("mv " + latitudeFile + fileBase + "_lband_latitude.csv"))
-			os.system(str("mv " + longitudeFile + fileBase + "_lband_longitude.csv"))
-			os.system(str("mv " + altitudeFile + fileBase + "_lband_altitude.csv"))
-			os.system(str("mv " + emissionFile + fileBase + "_lband_emission.csv"))
-			os.system(str("mv " + incidenceFile + fileBase + "_lband_incidence.csv"))
-			os.system(str("mv " + phaseFile + fileBase + "_lband_phase.csv"))
+			lbandCub = fileBase + '_lband.geom.cub'
+			os.system(str("mv " + geomCub + " " + mbandCub))
+			os.system(str("mv " + fileBase + "_latitude.csv " + fileBase + "_lband_latitude.csv"))
+			os.system(str("mv " + fileBase + "_longitude.csv " + fileBase + "_lband_longitude.csv"))
+			os.system(str("mv " + fileBase + "_altitude.csv " + fileBase + "_lband_altitude.csv"))
+			os.system(str("mv " + fileBase + "_emission.csv " + fileBase + "_lband_emission.csv"))
+			os.system(str("mv " + fileBase + "_incidence.csv " + fileBase + "_lband_incidence.csv"))
+			os.system(str("mv " + fileBase + "_phase.csv " + fileBase + "_lband_phase.csv"))
 		
 		# clean up extraneous cube files
 		os.system(str("/bin/rm " + latitudeCube))
