@@ -47,7 +47,12 @@ import kalasiris as isis
 
 # output files are placed in the same directory as the input files.
 
-# REMEMBER TO EDIT THE metakr VARIABLE in LINE 78 TO MATCH THE FULL PATH TO 
+# if you wish to split images into separate L- and M-band images, 
+# add -split to the command line:
+
+# python jiramgeombackplane.py -split
+
+# REMEMBER TO EDIT THE metakr VARIABLE in LINE 83 TO MATCH THE FULL PATH TO 
 # YOUR JUNO METAKERNEL
 
 
@@ -399,7 +404,16 @@ def backplanecubegen(backplane, bpName):
 	isis.editlab(from_=cubFile, option="addkey", grpname="BandBin", keyword="Width", value=filterWidth)
 	isis.editlab(from_=cubFile, option="addkey", grpname="BandBin", keyword="NaifIkCode", value=naifCode)
 	return cubFile
-	
+
+###########################
+### COMMAND LINE PARSER ###
+###########################
+
+splitimages = False
+for i in sys.argv:
+	if i == '-split':
+		splitimages = True
+
 ####################
 ### SCRIPT START ###
 ####################
@@ -593,7 +607,7 @@ for file in inputFiles:
 		# split or rename files
 		lbandCub = fileBase + '_lband.mirror.cub'
 		mbandCub = fileBase + '_mband.mirror.cub'
-		if instrumentMode == "I1" and dataType == 'IMAGE':
+		if instrumentMode == "I1" and dataType == 'IMAGE' and splitimages:
 			isis.crop(from_=mirrorCub, to_=lbandCub, line=1, nlines=128)
 			isis.crop(from_=mirrorCub, to_=mbandCub, line=129, nlines=128)
 			filterName = 'L-BAND'
@@ -630,7 +644,7 @@ for file in inputFiles:
 		# split or rename files
 		lbandCub = fileBase + '_lband.geom.cub'
 		mbandCub = fileBase + '_mband.geom.cub'
-		if instrumentMode == "I1" and dataType == 'IMAGE':
+		if instrumentMode == "I1" and dataType == 'IMAGE' and splitimages:
 			isis.crop(from_=geomCub, to_=lbandCub, line=1, nlines=128)
 			isis.crop(from_=geomCub, to_=mbandCub, line=129, nlines=128)
 			fromCube = str(lbandCub + "+2")
@@ -691,7 +705,7 @@ for file in inputFiles:
 			os.system(str('/bin/rm ' + fileBase + '_emission.csv'))
 			os.system(str('/bin/rm ' + fileBase + '_incidence.csv'))
 			os.system(str('/bin/rm ' + fileBase + '_phase.csv'))
-		elif instrumentMode == "I2" and dataType == 'IMAGE':
+		elif instrumentMode == "I2" and dataType == 'IMAGE' and splitimages:
 			mbandCub = fileBase + '_mband.mirror.cub'
 			imageCSV = fileBase + '_mband.csv'
 			os.system(str("mv " + mirrorCub + " " + mbandCub))
@@ -705,7 +719,7 @@ for file in inputFiles:
 			os.system(str("mv " + fileBase + "_emission.csv " + fileBase + "_mband_emission.csv"))
 			os.system(str("mv " + fileBase + "_incidence.csv " + fileBase + "_mband_incidence.csv"))
 			os.system(str("mv " + fileBase + "_phase.csv " + fileBase + "_mband_phase.csv"))
-		elif instrumentMode == "I3" and dataType == 'IMAGE':
+		elif instrumentMode == "I3" and dataType == 'IMAGE' and splitimages:
 			lbandCub = fileBase + '_lband.mirror.cub'
 			imageCSV = fileBase + '_lband.csv'
 			os.system(str("mv " + mirrorCub + " " + lbandCub))
