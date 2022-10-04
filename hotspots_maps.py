@@ -47,7 +47,7 @@ ax.imshow(img, extent=[360, 0, -90, 90])
 # sets color gradient to use in scatter plot
 cmap = plt.get_cmap('inferno')
 
-plt.scatter(longitude, latitude, c = value, s = 80, cmap = cmap)
+plt.scatter(longitude, latitude, c = value, s = 80, cmap = cmap, vmin=0, vmax=10)
 
 # sets graph labels
 ax.set_xlabel('Longitude (°W)')

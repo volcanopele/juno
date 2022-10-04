@@ -120,8 +120,8 @@ spiceinit from=\$1.trim.cub ckpredicted=true spkpredicted=true attach=true -batc
 cp *trim.cub /Volumes/TouchT7/scratch/jigsaw
 
 ls -1 *.cub | sed s/.trim.cub// > image_name.lis
-footprintinit from=\$1 -batchlist=JNCE_2021158_34C00001_V01.disk.lis
-findimageoverlaps from=JNCE_2021158_34C00001_V01.disk.lis overlaplist=overlaps.txt
+footprintinit from=\$1 -batchlist=image.lis
+findimageoverlaps from=image.lis overlaplist=overlaps.txt
 jigsaw fromlist=JNCE_2021158_34C00001_V01.disk.lis cnet=PJ34_Ganymede.net \
     onet=jigsaw_net.net model1=none twist=yes file_prefix=34C00001.js \
     sigma0=1.0e-3 maxits=200 update=yes observations=yes camera_angles_sigma=10 \

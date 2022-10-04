@@ -27,16 +27,16 @@ conda activate spice
 # also generates label file
 # the -d option will decompound the image
 conda activate base
-python ~/Documents/scripts/cassini_processing/junocam_png_to_img.py -p JNCE_2021158_34C00001_V01-raw.png -m 10629-Metadata.json -d
+python ~/Documents/scripts/cassini_processing/junocam_png_to_img.py -p JNCE_2022272_45C00001_V01-raw.png -m 13805-Metadata.json -d
 
 # don't freak out about all the errors. Those are expected
 # you should have a raw file and a lbl file
 
 # now get into ISIS and convert the raw image to IMG
 # use label to get size
-raw2isis from=JNCE_2021158_34C00001_V01-raw.raw to=JNCE_2021158_34C00001_V01-raw.cub \
+raw2isis from=JNCE_2022272_45C00001_V01-raw.raw to=JNCE_2022272_45C00001_V01-raw.cub \
     samples=1648 lines=10752 bittype=REAL byteorder=LSB
-isis2pds from=JNCE_2021158_34C00001_V01-raw.cub to=JNCE_2021158_34C00001_V01-raw-adjusted.img \
+isis2pds from=JNCE_2022272_45C00001_V01-raw.cub to=JNCE_2022272_45C00001_V01-raw-adjusted.img \
     labtype=FIXED bittype=32BIT pdsversion=PDS3
 
 mkdir initial
@@ -47,9 +47,9 @@ mkdir jigsaw
 # use junogeometryinfo.py to get clat, clon, altitude (NOT DISTANCE TO CENTER), and JunoCAM resolution
 # use the label file generated above to get the mid-image time
 # be sure to edit targetname to be Ganymede for those images
-maptemplate map=JNCE_2021158_34C00001_V01.map targopt=user targetname=Ganymede \
-	clat=26.838 clon=34.284 dist=1306.554 londir=POSITIVEWEST \
-	projection=POINTPERSPECTIVE resopt=MPP resolution=878.919 rngopt=user minlat=-90 \
+maptemplate map=JNCE_2022272_45C00001_V01.map targopt=user targetname=Europa \
+	clat=11.686 clon=0.567 dist=1498.722 londir=POSITIVEWEST \
+	projection=POINTPERSPECTIVE resopt=MPP resolution=1008.191 rngopt=user minlat=-90 \
 	maxlat=90 minlon=0 maxlon=360
 
 # Ganymede basemap at 
@@ -58,26 +58,42 @@ maptemplate map=JNCE_2021158_34C00001_V01.map targopt=user targetname=Ganymede \
 /Volumes/TouchT7/data/basemaps/io
 
 # import framelets into ISIS
-junocam2isis from=JNCE_2021158_34C00001_V01-raw-adjusted.lbl to=initial/JNCE_2021158_34C00001_V01.cub
+junocam2isis from=JNCE_2022272_45C00001_V01-raw-adjusted.lbl to=initial/JNCE_2022272_45C00001_V01.cub
 cd initial
 
 # look through the images in qview to find those that lack any part of the disk
-/bin/rm JNCE_2021158_34C00001_V01_BLUE_0003* JNCE_2021158_34C00001_V01_BLUE_0001* JNCE_2021158_34C00001_V01_BLUE_0002* 
-/bin/rm JNCE_2021158_34C00001_V01_BLUE_0024* JNCE_2021158_34C00001_V01_BLUE_0025* JNCE_2021158_34C00001_V01_BLUE_0026* 
-/bin/rm JNCE_2021158_34C00001_V01_BLUE_0027* JNCE_2021158_34C00001_V01_BLUE_0028*
-/bin/rm JNCE_2021158_34C00001_V01_GREEN_0001* JNCE_2021158_34C00001_V01_GREEN_0002* JNCE_2021158_34C00001_V01_GREEN_0028*
-/bin/rm JNCE_2021158_34C00001_V01_GREEN_0022* JNCE_2021158_34C00001_V01_GREEN_0023* JNCE_2021158_34C00001_V01_GREEN_0024* 
-/bin/rm JNCE_2021158_34C00001_V01_GREEN_0025* JNCE_2021158_34C00001_V01_GREEN_0026* JNCE_2021158_34C00001_V01_GREEN_0027*
-/bin/rm JNCE_2021158_34C00001_V01_RED_0021* JNCE_2021158_34C00001_V01_RED_0022* JNCE_2021158_34C00001_V01_RED_0023* 
-/bin/rm JNCE_2021158_34C00001_V01_RED_0024* JNCE_2021158_34C00001_V01_RED_0025* JNCE_2021158_34C00001_V01_RED_0026* 
-/bin/rm JNCE_2021158_34C00001_V01_RED_0027* JNCE_2021158_34C00001_V01_RED_0028* 
+/bin/rm JNCE_2022272_45C00001_V01_BLUE_0003* JNCE_2022272_45C00001_V01_BLUE_0001* JNCE_2022272_45C00001_V01_BLUE_0002* 
+/bin/rm JNCE_2022272_45C00001_V01_BLUE_0004* JNCE_2022272_45C00001_V01_BLUE_0005*
+/bin/rm JNCE_2022272_45C00001_V01_BLUE_0024* JNCE_2022272_45C00001_V01_BLUE_0025* JNCE_2022272_45C00001_V01_BLUE_0026* 
+/bin/rm JNCE_2022272_45C00001_V01_BLUE_0027* JNCE_2022272_45C00001_V01_BLUE_0028*
+/bin/rm JNCE_2022272_45C00001_V01_BLUE_0021* JNCE_2022272_45C00001_V01_BLUE_0022* JNCE_2022272_45C00001_V01_BLUE_0023*
+
+/bin/rm JNCE_2022272_45C00001_V01_GREEN_0001* JNCE_2022272_45C00001_V01_GREEN_0002* JNCE_2022272_45C00001_V01_GREEN_0003* 
+/bin/rm JNCE_2022272_45C00001_V01_GREEN_0004* JNCE_2022272_45C00001_V01_GREEN_0021*
+/bin/rm JNCE_2022272_45C00001_V01_GREEN_0028* JNCE_2022272_45C00001_V01_GREEN_0020* JNCE_2022272_45C00001_V01_GREEN_0019*
+/bin/rm JNCE_2022272_45C00001_V01_GREEN_0022* JNCE_2022272_45C00001_V01_GREEN_0023* JNCE_2022272_45C00001_V01_GREEN_0024* 
+/bin/rm JNCE_2022272_45C00001_V01_GREEN_0025* JNCE_2022272_45C00001_V01_GREEN_0026* JNCE_2022272_45C00001_V01_GREEN_0027*
+
+/bin/rm JNCE_2022272_45C00001_V01_RED_0021* JNCE_2022272_45C00001_V01_RED_0022* JNCE_2022272_45C00001_V01_RED_0023* 
+/bin/rm JNCE_2022272_45C00001_V01_RED_0024* JNCE_2022272_45C00001_V01_RED_0025* JNCE_2022272_45C00001_V01_RED_0026* 
+/bin/rm JNCE_2022272_45C00001_V01_RED_0027* JNCE_2022272_45C00001_V01_RED_0028* 
+/bin/rm JNCE_2022272_45C00001_V01_RED_0001* JNCE_2022272_45C00001_V01_RED_0002*
+/bin/rm JNCE_2022272_45C00001_V01_RED_0018* JNCE_2022272_45C00001_V01_RED_0019* JNCE_2022272_45C00001_V01_RED_0020*
 
 ls -1 *.cub | sed s/.cub// > image_name.lis
 
 # need to trim off the top and bottom by 4 pixels
 # may need to trim off left and right depending on camera settings
-trim from=\$1.cub to=\$1.trim.cub top=4 bottom=4 left=25 right=17 -batchlist=image_name.lis
-spiceinit from=\$1.trim.cub ckpredicted=true spkpredicted=true attach=true -batchlist=image_name.lis
+trim from=\$1.cub to=\$1.trim.cub top=2 bottom=2 left=25 right=17 -batchlist=image_name.lis
+
+
+
+spiceinit from=\$1.trim.cub tspk="(/Users/perry/Dropbox/Io/Juno/kernels/spk/de440s.bsp, /Users/perry/Dropbox/Io/Juno/kernels/spk/juno_struct_v04.bsp, /Users/perry/Dropbox/Io/Juno/kernels/spk/jup380s.bsp)" ckpredicted=true spkpredicted=true attach=true -batchlist=image_name.lis
+
+
+ls -1 *RED*.cub | sed s/.cub// > RED_image_name.lis
+ls -1 *GREEN*.cub | sed s/.cub// > GREEN_image_name.lis
+ls -1 *BLUE*.cub | sed s/.cub// > BLUE_image_name.lis
 
 # OPTIONAL
 # before trimming, you can use a flatfield on framelets
@@ -90,8 +106,8 @@ ratio numerator=\$1.cub \
 ratio numerator=\$1.cub \
     denominator=/Volumes/TouchT7/data/juno/calibration/flats/JNCE_RED_flat_PJ3435_v2.cub \
     to=\$1.flat.cub -batchlist=RED_image_name.lis
-trim from=\$1.flat.cub to=\$1.trim.cub top=4 bottom=4 left=25 right=17 -batchlist=image_name.lis
-spiceinit from=\$1.trim.cub ckpredicted=true spkpredicted=true attach=true -batchlist=image_name.lis
+trim from=\$1.flat.cub to=\$1.trim.cub top=2 bottom=2 left=25 right=17 -batchlist=image_name.lis
+spiceinit from=\$1.trim.cub tspk="(/Users/perry/Dropbox/Io/Juno/kernels/spk/de440s.bsp, /Users/perry/Dropbox/Io/Juno/kernels/spk/juno_struct_v04.bsp, /Users/perry/Dropbox/Io/Juno/kernels/spk/jup380s.bsp)" ckpredicted=true spkpredicted=true attach=true -batchlist=image_name.lis
 
 cp *trim.cub ../jigsaw
 
@@ -107,10 +123,13 @@ ls -1 *.trim.cub > image_list.lis
 ls -1 *.cub | sed s/.trim.cub// > image_name.lis
 footprintinit from=\$1 -batchlist=image_list.lis
 findimageoverlaps from=image_list.lis overlaplist=overlaps.txt
-autoseed fromlist=image_list.lis overlaplist=overlaps.txt deffile=../autoseed_strip.def \
-	onet=autoseed_strip.net errors=autoseed_grid.err networkid=34C00001.1 \
-	pointid=34C00001.\?\?\?\?\?\?\? description="34C00001 grid1"
+autoseed fromlist=image.lis overlaplist=overlaps.txt deffile=../../autoseed_strip.def \
+	onet=autoseed_strip.net errors=autoseed_grid.err networkid=45C00001.1 \
+	pointid=\?\?\?\?\?\?\? description="45C00001 grid1"
 # can also create the control network in qnet if you don't want to have a lot of unusable points
+pointreg fromlist=image.lis cnet=autoseed_strip_minDN.net onet=pointreg_net.net deffile=../../autoreg.def MEASURES=CANDIDATES flatfile=pointreg_net.txt
+
+
 
 # no update - test network for solution
 jigsaw fromlist=image_name.lis cnet=PJ34_Ganymede.net \
@@ -158,4 +177,5 @@ cubeit fromlist=images.lis to=JNCE_2021158_34C00002_V01_RGB.cub
 isis2std red=JNCE_2021158_34C00002_V01_RED.cub+1 green=JNCE_2021158_34C00002_V01_GREEN.cub+1 \
 	blue=JNCE_2021158_34C00002_V01_BLUE.cub+1 to=JNCE_2021158_34C00001_V01_RGB.png mode=RGB \
 	stretch=manual rmin=50 rmax=2077 gmin=50 gmax=2077 bmin=50 bmax=2077 quality=80
+
 
