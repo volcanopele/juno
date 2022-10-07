@@ -32,11 +32,11 @@ file = '/Users/perry/Dropbox/Io/Juno/max_brightness.csv'
 csvarray = pd.read_csv(file, delimiter=',')
 hotspots = [tuple(row) for row in csvarray.values]
 
-latitude, longitude, value = zip(*hotspots)
+latitude, longitude, value, sizevalue = zip(*hotspots)
 
 # creates graph of the ground plots for all encounters
 # load map as background image
-img = plt.imread("Io_GalileoSSI-Voyager_Global_Mosaic_ClrMerge_2km_180W.jpg")
+img = plt.imread("Io_GalileoSSI-Voyager_Global_Mosaic_2km_180W.jpg")
 
 # initialize plot
 fig, ax = plt.subplots()
@@ -47,12 +47,12 @@ ax.imshow(img, extent=[360, 0, -90, 90])
 # sets color gradient to use in scatter plot
 cmap = plt.get_cmap('inferno')
 
-plt.scatter(longitude, latitude, c = value, s = 80, cmap = cmap, vmin=0, vmax=10)
+plt.scatter(longitude, latitude, c = value, s = sizevalue, cmap = cmap, vmin=0, vmax=10)
 
 # sets graph labels
 ax.set_xlabel('Longitude (°W)')
 ax.set_ylabel('Latitude')
-ax.set_title(file)
+ax.set_title('Io Hotspots seen by Juno - 2017–2022 (Maximum brightness)')
 ax.set_yticks([-90, -60, -30, 0, 30, 60, 90], minor = False)
 ax.set_yticks([-75, -45, -15, 15, 45, 75], minor = True)
 ax.set_xticks([0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330, 360], minor = False)
@@ -61,5 +61,6 @@ ax.set_xticks([15, 45, 75, 105, 135, 165, 195, 225, 255, 285, 315, 345], minor =
 #create color bar for phase angle
 mappable = ax.collections[0]
 cbar = plt.colorbar(mappable=mappable)
+cbar.set_label('Surface Radiance (W/µm)', labelpad=+1)
 
 plt.show()
