@@ -32,8 +32,10 @@ file = '/Users/perry/Dropbox/Io/Juno/max_brightness.csv'
 csvarray = pd.read_csv(file, delimiter=',')
 hotspots = [tuple(row) for row in csvarray.values]
 
-latitude, longitude, value, sizevalue = zip(*hotspots)
+latitude, longitude, value = zip(*hotspots)
 
+sizevalues = value * 10
+print(value)
 # creates graph of the ground plots for all encounters
 # load map as background image
 img = plt.imread("Io_GalileoSSI-Voyager_Global_Mosaic_2km_180W.jpg")
@@ -47,7 +49,7 @@ ax.imshow(img, extent=[360, 0, -90, 90])
 # sets color gradient to use in scatter plot
 cmap = plt.get_cmap('inferno')
 
-plt.scatter(longitude, latitude, c = value, s = sizevalue, cmap = cmap, vmin=0, vmax=10)
+plt.scatter(longitude, latitude, c = value, s = 50, cmap = cmap, vmin=0, vmax=10)
 
 # sets graph labels
 ax.set_xlabel('Longitude (°W)')
