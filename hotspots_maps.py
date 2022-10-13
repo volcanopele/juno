@@ -65,6 +65,6 @@ ax.set_xticks([15, 45, 75, 105, 135, 165, 195, 225, 255, 285, 315, 345], minor =
 #create color bar for phase angle
 mappable = ax.collections[0]
 cbar = plt.colorbar(mappable=mappable)
-cbar.set_label('Surface Radiance (W/µm)', labelpad=+1)
+cbar.set_label('Surface Radiance (GW/µm)', labelpad=+1)
 
 plt.show()
