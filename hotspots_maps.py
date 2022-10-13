@@ -56,7 +56,7 @@ plt.scatter(longitude, latitude, c = value, s = sizevalues, cmap = cmap, edgecol
 # sets graph labels
 ax.set_xlabel('Longitude (°W)')
 ax.set_ylabel('Latitude')
-ax.set_title('Io Hotspots seen by Juno - PJ26')
+ax.set_title('Io Hotspots seen by Juno - PJ20')
 ax.set_yticks([-90, -60, -30, 0, 30, 60, 90], minor = False)
 ax.set_yticks([-75, -45, -15, 15, 45, 75], minor = True)
 ax.set_xticks([0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330, 360], minor = False)
