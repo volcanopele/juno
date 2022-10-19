@@ -35,7 +35,9 @@ hotspots = [tuple(row) for row in csvarray.values]
 
 latitude, longitude, value = zip(*hotspots)
 
-print(value[0])
+perijove = csvarray.columns.values
+perijove = perijove[2]
+
 sizevalues = np.multiply(value, 100)
 sizevalues = np.add(sizevalues, 10)
 
@@ -52,12 +54,14 @@ ax.imshow(img, extent=[360, 0, -90, 90])
 # sets color gradient to use in scatter plot
 cmap = plt.get_cmap('inferno')
 
-plt.scatter(longitude, latitude, c = value, s = sizevalues, cmap = cmap, edgecolor='black', norm=matplotlib.colors.LogNorm(vmax=150.0, vmin=0.02), alpha=0.8)
+# plt.scatter(longitude, latitude, c = value, s = sizevalues, cmap = cmap, edgecolor='black', norm=matplotlib.colors.LogNorm(vmax=150.0, vmin=0.02), alpha=0.8)
+plt.scatter(longitude, latitude, c = value, s = sizevalues, cmap = cmap, edgecolor='black', norm=matplotlib.colors.LogNorm(), alpha=0.8)
 
 # sets graph labels
 ax.set_xlabel('Longitude (°W)')
 ax.set_ylabel('Latitude')
-ax.set_title('Io Hotspots seen by Juno - PJ9')
+ax.set_title('Io Hotspots seen by Juno - ' + perijove)
+# ax.set_title('Io Hotspots seen by Juno - ' + 'a different name')
 ax.set_yticks([-90, -60, -30, 0, 30, 60, 90], minor = False)
 ax.set_yticks([-75, -45, -15, 15, 45, 75], minor = True)
 ax.set_xticks([0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330, 360], minor = False)
