@@ -204,6 +204,8 @@ def backplanegen(frmcode, derivedX, derivedY, trgepc):
 	# for now using this, but I can commment this out
 	dx = 0.000237767
 	dy = 0.000237767
+	offsetY = 0
+	offsetX = 0
 	
 	
 	# this script can check for a csv file listing the center pixel of Io
@@ -266,9 +268,6 @@ def backplanegen(frmcode, derivedX, derivedY, trgepc):
 				offsetY *= -1
 				break
 		offsetFile.close()
-	else:
-		offsetY = 0
-		offsetX = 0
 		
 	# generate numpy arrays of radian pixel locations for both the X and Y directions
 	xp = np.arange(0.5,431.51,1)*dx + bounds[3,1] + offsetX
@@ -503,8 +502,6 @@ for file in inputFiles:
 					derivedY = float(derivedLine[2])
 					break
 			offsetFile.close()
-		elif offsetCSV:
-			print("Yep, you want to use an offset file!")
 		
 		if instrumentMode == "I1":
 			imgLines = 256
