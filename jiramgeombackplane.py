@@ -252,6 +252,20 @@ def backplanegen(frmcode, derivedX, derivedY, trgepc):
 			offsetY *= dy
 			offsetX = centerX - derivedX
 			offsetX *= dx
+	if offsetCSV:
+		offsetFile = open(offsetInput)
+		offsetInfo = offsetFile.readlines()
+		for line in offsetInfo:
+			if productID in line:
+				derivedLine = line.split(",")
+				offsetX = float(derivedLine[1])
+				offsetY = float(derivedLine[2])
+				offsetY *= dy
+				offsetX *= dx
+				offsetX *= -1
+				offsetY *= -1
+				break
+		offsetFile.close()
 	else:
 		offsetY = 0
 		offsetX = 0
@@ -410,9 +424,12 @@ def backplanecubegen(backplane, bpName):
 ###########################
 
 splitimages = False
+offsetCSV = False
 for i in sys.argv:
 	if i == '-split':
 		splitimages = True
+	elif i == '-offset':
+		offsetCSV = True
 
 ####################
 ### SCRIPT START ###
@@ -476,7 +493,7 @@ for file in inputFiles:
 		# obtain derived center pixel from derived file, if available
 		derivedY = ""
 		derivedX = ""
-		if offsetInput != "":
+		if offsetInput != "" and offsetCSV == False:
 			offsetFile = open(offsetInput)
 			offsetInfo = offsetFile.readlines()
 			for line in offsetInfo:
@@ -486,6 +503,8 @@ for file in inputFiles:
 					derivedY = float(derivedLine[2])
 					break
 			offsetFile.close()
+		elif offsetCSV:
+			print("Yep, you want to use an offset file!")
 		
 		if instrumentMode == "I1":
 			imgLines = 256
