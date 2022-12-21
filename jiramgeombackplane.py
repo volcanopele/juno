@@ -258,6 +258,11 @@ def backplanegen(frmcode, derivedX, derivedY, trgepc):
 			offsetY *= dy
 			offsetX = centerX - derivedX
 			offsetX *= dx
+			
+	# if Jason's offsets are used, which are expressed in the number of pixels offset
+	# rather than the center of Io, this conditional block will set the offsetX and 
+	# offsetY variables
+	
 	if offsetCSV:
 		offsetFile = open(offsetInput)
 		offsetInfo = offsetFile.readlines()
@@ -489,6 +494,9 @@ for file in inputFiles:
 	# get radii of Io from spice
 	[num, radii] = spiceypy.bodvrd(target, 'RADII', 3)
 	
+	# conditional for generating backplanes, first checking if it is an image or 
+	# spectrometer file
+	
 	if dataType == 'IMAGE':
 		# obtain cartesian coordinates for sub-spacecraft point at the time of closest approach
 		[spoint, trgepc, subsrfvec] = spiceypy.subpnt( method, target, etStart, tarfrm, abcorr, scname )
@@ -506,6 +514,9 @@ for file in inputFiles:
 					derivedY = float(derivedLine[2])
 					break
 			offsetFile.close()
+		
+		# for different imaging modes, different backplane generation scripts are 
+		# needed
 		
 		if instrumentMode == "I1":
 			imgLines = 256
@@ -535,8 +546,6 @@ for file in inputFiles:
 		else:
 			print("Incorrect Image Mode")
 			sys.exit()
-		
-		# these two lines actually do all the "real" work of generating backplane CSV files
 		
 	elif dataType == 'SPECTRAL':
 		specbackplanegen()
