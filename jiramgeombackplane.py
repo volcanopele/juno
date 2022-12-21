@@ -52,6 +52,10 @@ import kalasiris as isis
 
 # python jiramgeombackplane.py -split
 
+# if you are using Jason's offset numbers, add -offset to the command line:
+
+# python jiramgeombackplane.py -offset
+
 # REMEMBER TO EDIT THE metakr VARIABLE in LINE 83 TO MATCH THE FULL PATH TO 
 # YOUR JUNO METAKERNEL
 
