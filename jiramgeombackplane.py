@@ -655,6 +655,10 @@ for file in inputFiles:
 			imageCSV = fileBase + '_mband.csv'
 			isis.isis2ascii(from_=mbandCub, to_=imageCSV, header_="no", delimiter_=",", setpixelvalues="yes", nullvalue_=-1024, hrsvalue_=1)
 			os.system(str("mv " + imageCSV + ".txt " + imageCSV))
+		elif splitimages == False:
+			toCSV = fileBase + '.csv'
+			isis.isis2ascii(from_=mirrorCub, to_=toCSV, header_="no", delimiter_=",", setpixelvalues="yes", nullvalue_=-1024, hrsvalue_=1)
+			os.system(str("mv " + toCSV + ".txt " + toCSV))
 		
 		
 		# generate cubes files for each backplane using the backplanecubegen function

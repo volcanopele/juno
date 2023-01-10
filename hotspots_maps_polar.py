@@ -41,33 +41,41 @@ perijove = perijove[2]
 sizevalues = np.multiply(value, 100)
 sizevalues = np.add(sizevalues, 10)
 
+longitude2 = [x*spiceypy.rpd() for x in longitude]
+print(longitude[200])
+print(longitude2[200])
 # creates graph of the ground plots for all encounters
-# load map as background image
-img = plt.imread("Io_GalileoSSI-Voyager_Global_Mosaic_2km_180W.jpg")
 
+maxlon = 360*spiceypy.rpd()
 # initialize plot
-fig, ax = plt.subplots()
+fig = plt.figure()
+ax = fig.add_subplot(projection='polar')
 
+ax.set_rlim(-90,0)
+ax.set_theta_direction(1)
+ax.set_theta_zero_location(loc = "N")
 # define area covered by map
-ax.imshow(img, extent=[360, 0, -90, 90])
+# ax.imshow(img, extent=[360, 0, 0, 90])
+
 
 # sets color gradient to use in scatter plot
 cmap = plt.get_cmap('inferno')
 
-plt.scatter(longitude, latitude, c = value, s = 200, cmap = cmap, edgecolor='black', norm=matplotlib.colors.LogNorm(vmax=70.0, vmin=0.02), alpha=0.9)
+plt.scatter(longitude2, latitude, c = value, s = 200, cmap = cmap, edgecolor='black', norm=matplotlib.colors.LogNorm(vmax=70.0, vmin=0.02), alpha=0.9)
 # plt.scatter(longitude, latitude, c = value, s = sizevalues, cmap = cmap, edgecolor='black', norm=matplotlib.colors.LogNorm(), alpha=0.8)
 # plt.scatter(longitude, latitude, c = value, s = 100, cmap = cmap, edgecolor='black', norm=matplotlib.colors.LogNorm(), alpha=0.8)
 
 # sets graph labels
-ax.set_xlabel('Longitude (°W)', fontsize='xx-large')
-ax.set_ylabel('Latitude', fontsize='xx-large')
-# ax.set_title('Io Hotspots seen by Juno - ' + perijove)
-ax.set_title('Io Hotspots seen by Juno - ' + '2017 – 2022 (Maximum Unsaturated Brightness)', fontsize=30)
-ax.set_yticks([-90, -60, -30, 0, 30, 60, 90], minor = False)
-ax.set_yticks([-75, -45, -15, 15, 45, 75], minor = True)
-ax.set_xticks([0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330, 360], minor = False)
-ax.set_xticks([15, 45, 75, 105, 135, 165, 195, 225, 255, 285, 315, 345], minor = True)
-plt.yticks(fontsize='x-large')
+# ax.set_xlabel('Longitude (°W)', fontsize='xx-large')
+# ax.set_ylabel('Latitude', fontsize='xx-large')
+ax.set_title('Southern Hemisphere')
+fig.suptitle('Io Hotspots seen by Juno - ' + '2017 – 2022 (Maximum Unsaturated Brightness)', fontsize=30)
+# ax.set_yticks([-90, -60, -30, 0, 30, 60, 90], minor = False)
+# ax.set_yticks([-75, -45, -15, 15, 45, 75], minor = True)
+ax.set_rgrids(radii = [-30, -60], labels = ['30°S', '60°S'], angle = 0)
+ax.set_xticks([0*spiceypy.rpd(), 30*spiceypy.rpd(), 60*spiceypy.rpd(), 90*spiceypy.rpd(), 120*spiceypy.rpd(), 150*spiceypy.rpd(), 180*spiceypy.rpd(), 210*spiceypy.rpd(), 240*spiceypy.rpd(), 270*spiceypy.rpd(), 300*spiceypy.rpd(), 330*spiceypy.rpd()], minor = False)
+# ax.set_xticks([15, 45, 75, 105, 135, 165, 195, 225, 255, 285, 315, 345], minor = True)
+# plt.yticks(fontsize='x-large')
 plt.xticks(fontsize='x-large')
 
 
