@@ -125,6 +125,8 @@ def fileParse(inputs):
 	# time, product ID, and orbit number. If found, the loop will parse the line by
 	# split it by spaces then sorts the resulting array so that the value we need 
 	# is at a consistent position.
+	instrumentMode = ""
+	
 	for line in datafile:
 		if 'SPACECRAFT_CLOCK_START_COUNT' in line:
 			startTime = line
@@ -179,6 +181,7 @@ def fileParse(inputs):
 			instrumentMode = instrumentModes[0]
 			instrumentModes = instrumentMode.split("_")
 			instrumentMode = instrumentModes[1]
+	
 	# start and stop time converted to seconds past J2000
 	etStart = spiceypy.scs2e(-61999,startTime)
 	etStop = spiceypy.scs2e(-61999,stopTime)
@@ -355,8 +358,12 @@ def specbackplanegen():
 	
 	# generate numpy arrays of radian pixel locations for x
 	# sensor array has 1 spatial and 1 spectral dimension, so Y and Z are one value
-	xp = bounds[0,1] - np.arange(0.5,256.5,1)*dx
-	yp = bsight[0]
+	offsetX = 3
+	offsetY = 3
+	offsetX *= dx
+	offsetY *= dx
+	xp = bounds[0,1] - np.arange(0.5,256.5,1)*dx + offsetX
+	yp = bsight[0] - offsetY
 	zp = bsight[2]
 	for i in range(0,256):
 		# initialize each line so as to clear the previous line
