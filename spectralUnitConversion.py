@@ -94,6 +94,8 @@ for i in range(0,len(hotspotArray.index)):
 		radiance = ""
 		ema = ""
 		alt = ""
+		inc = ""
+		pha = ""
 	else:
 		latitude = hotspotArray[0][i] * spiceypy.rpd()
 		longitude = 360 - hotspotArray[1][i]
@@ -106,6 +108,8 @@ for i in range(0,len(hotspotArray.index)):
 		if ema > 90:
 			ema = 88
 			emissn = ema * spiceypy.rpd()
+		inc = incdnc * spiceypy.dpr()
+		pha = phase * spiceypy.dpr()
 			
 		alt = spiceypy.vnorm( srfvec )
 		
@@ -118,6 +122,6 @@ for i in range(0,len(hotspotArray.index)):
 		radiance = radiance / math.cos(emissn)
 		radiance = radiance / 1000000000
 	
-	print(str(hotspotArray[0][i]) + "," + str(hotspotArray[1][i]) + "," + str(radiance) + "," + str(ema) + "," + str(alt), file = outputFile)
+	print(str(hotspotArray[0][i]) + "," + str(hotspotArray[1][i]) + "," + str(radiance) + "," + str(ema) + "," + str(alt) + "," + str(inc) + "," + str(pha), file = outputFile)
 		
 outputFile.close()

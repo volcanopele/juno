@@ -62,7 +62,7 @@ plt.scatter(longitude, latitude, c = value, s = 200, cmap = cmap, edgecolor='bla
 ax.set_xlabel('Longitude (°W)', fontsize='xx-large')
 ax.set_ylabel('Latitude', fontsize='xx-large')
 # ax.set_title('Io Hotspots seen by Juno - ' + perijove)
-ax.set_title('Io Hotspots seen by Juno - ' + '2017 – 2022 (Maximum Unsaturated Brightness)', fontsize=30)
+ax.set_title('Io Hotspots seen by Juno - ' + '2017 – 2022 (Maximum Unsaturated Brightness)', fontsize=20, pad=10)
 ax.set_yticks([-90, -60, -30, 0, 30, 60, 90], minor = False)
 ax.set_yticks([-75, -45, -15, 15, 45, 75], minor = True)
 ax.set_xticks([0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330, 360], minor = False)
@@ -73,7 +73,7 @@ plt.xticks(fontsize='x-large')
 
 #create color bar for phase angle
 mappable = ax.collections[0]
-cbar = plt.colorbar(mappable=mappable)
+cbar = plt.colorbar(mappable=mappable, shrink=0.75)
 cbar.ax.tick_params(labelsize='x-large')
 cbar.set_label('Surface Radiance (GW/µm)', labelpad=+1, fontsize='xx-large')
 
