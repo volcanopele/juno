@@ -26,7 +26,7 @@ import pandas as pd
 
 # example use
 
-# python jiramReprojection.py -i /Users/perry/Dropbox/Io/Juno/PJ17/M-band/JIR_IMG_RDR_2018355T122946_V01.LBL -x -1.25 -y 2.5 -m /Users/perry/Dropbox/Io/Juno/PJ17/M-band/JIR_IMG_RDR_2018355T123147_V01.map.cub
+# python jiramReprojection.py -i /Users/perry/Dropbox/Io/Juno/PJ17/M-band/JIR_IMG_RDR_2018355T122946_V01.LBL -x -1.25 -y 2.5 -z 0.25 -m /Users/perry/Dropbox/Io/Juno/PJ17/M-band/JIR_IMG_RDR_2018355T123147_V01.map.cub
 
 # in this case, the label for the image to be reprojected is /Users/perry/Dropbox/Io/Juno/PJ17/M-band/JIR_IMG_RDR_2018355T122946_V01.LBL
 # the spice geometry is to be offset by -1.25 pixels in the X direction and 2.5 pixels in the Y direction
@@ -198,12 +198,13 @@ def coordinates(frmcode, tarfrm, trgepc, etStart, srfvec, xOffset, yOffset):
 mapfile = ''
 outputfile = ''
 jiramInput = ''
+rotation = ''
 xOffset = 0
 yOffset = 0
 argv = sys.argv[1:]
 
 try:
-	opts, args = getopt.getopt(argv, 'i:m:x:y:', ['mapfile', 'infile'])
+	opts, args = getopt.getopt(argv, 'i:m:x:y:z:', ['mapfile', 'infile'])
 	for opt, arg in opts:
 		if opt in ("-m", "--mapfile"):
 			mapfile = arg
@@ -213,6 +214,8 @@ try:
 			xOffset = float(arg)
 		if opt in ("-y"):
 			yOffset = float(arg)
+		if opt in ("-z"):
+			rotation = float(arg)
 except getopt.GetoptError:
 	print('jiramReprojection.py -m <mapfile> -i <infile>')
 	sys.exit(2)
@@ -437,7 +440,21 @@ for i in range(0,arrayLines):
 # Export CSV to ISIS image
 mapPanda.to_csv(reprojectCSV, index=False, header=False)
 isis.ascii2isis(from_=reprojectCSV, to_=reprojectedCub, order_="bsq", samples_=samples, lines_=lines, bands_=1, skip_=0, setnullrange_="true", nullmin_=-2000, nullmax_=0.00002)
-isis.copylabel(from_=reprojectedCub, source_=mapCub, mapping="true")
+
+# rotate if requested
+if rotation == "":
+	isis.copylabel(from_=reprojectedCub, source_=mapCub, mapping="true")
+else:
+	rotatedCub = fileBase + '.rotate.cub'
+	croppedCub = fileBase + '.crop.cub'
+	isis.rotate(from_=reprojectedCub, to_=rotatedCub, degrees=rotation, interp="NEARESTNEIGHBOR")
+	newsize = int(isis.getkey(from_=rotatedCub, grpname="Group", keyword="Samples"))
+	oldsize = int(isis.getkey(from_=reprojectedCub, grpname="Group", keyword="Samples"))
+	starting = newsize - oldsize
+	starting /= 2
+	starting += 1
+	isis.crop(from_=rotatedCub, to=croppedCub, samp=starting, line=starting, nsamp=oldsize, nline=oldsize)
+	isis.copylabel(from_=croppedCub, source_=mapCub, mapping="true")
 
 
 #############################
@@ -460,3 +477,5 @@ if lBandavailable:
 	os.system(str("/bin/rm " + lbandCub))
 	os.system(str("/bin/rm " + lbandCsv))
 	os.system(str("/bin/rm " + mbandCub))
+if rotation != "":
+	os.system(str("/bin/rm " + rotatedCub))
