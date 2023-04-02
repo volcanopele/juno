@@ -75,6 +75,6 @@ plt.xticks(fontsize='x-large')
 mappable = ax.collections[0]
 cbar = plt.colorbar(mappable=mappable, shrink=0.75)
 cbar.ax.tick_params(labelsize='x-large')
-cbar.set_label('Surface Radiance (GW/µm)', labelpad=+1, fontsize='xx-large')
+cbar.set_label('M-band spectral radiance, GW/µm', labelpad=+1, fontsize='xx-large')
 
 plt.show()

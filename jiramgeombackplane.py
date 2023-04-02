@@ -359,7 +359,7 @@ def specbackplanegen():
 	# generate numpy arrays of radian pixel locations for x
 	# sensor array has 1 spatial and 1 spectral dimension, so Y and Z are one value
 	offsetX = 3
-	offsetY = 3
+	offsetY = 0
 	offsetX *= dx
 	offsetY *= dx
 	xp = bounds[0,1] - np.arange(0.5,256.5,1)*dx + offsetX

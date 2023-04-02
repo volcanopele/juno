@@ -247,6 +247,7 @@ parseTuple = fileParse(jiramInput)
 etStart =  parseTuple[3]
 productID = parseTuple[1]
 instrumentMode = parseTuple[6]
+orbit = parseTuple[2]
 
 # setup paths
 root = os.path.dirname(jiramInput)
@@ -277,7 +278,11 @@ else:
 		lon = 360.0 - lon
 	lat = lat * spiceypy.dpr()
 	res = alt * 0.237767
-	res /= 5
+	if orbit == 41 or orbit == 43:
+		magnify = 5
+	else:
+		magnify = 10
+	res /= magnify
 	isis.maptemplate(map_=mapPvl, targopt_="user", targetname_=target, clat_=lat, clon_=lon, dist_=alt, londir_="POSITIVEWEST", projection_="POINTPERSPECTIVE", resopt_="MPP", resolution_=res, rngopt_="user", minlat_=-90, maxlat_=90, minlon_=0, maxlon_=360)
 	isis.map2map(from_=basemp, to_=mapCub, map_=mapPvl, pixres_="map", defaultrange_="map")
 	print("map cube generated")
