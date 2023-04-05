@@ -250,7 +250,7 @@ parseTuple = fileParse(jiramInput)
 etStart =  parseTuple[3]
 productID = parseTuple[1]
 instrumentMode = parseTuple[6]
-orbit = parseTuple[2]
+orbit = int(parseTuple[2])
 
 # setup paths
 root = os.path.dirname(jiramInput)
@@ -448,12 +448,11 @@ else:
 	rotatedCub = fileBase + '.rotate.cub'
 	croppedCub = fileBase + '.crop.cub'
 	isis.rotate(from_=reprojectedCub, to_=rotatedCub, degrees=rotation, interp="NEARESTNEIGHBOR")
-	newsize = int(isis.getkey(from_=rotatedCub, grpname="Group", keyword="Samples"))
-	oldsize = int(isis.getkey(from_=reprojectedCub, grpname="Group", keyword="Samples"))
-	starting = newsize - oldsize
+	newsize = int(isis.getkey(from_=rotatedCub, grpname_="Dimensions", objname_="Core", keyword_="Samples").stdout)
+	starting = newsize - samples
 	starting /= 2
 	starting += 1
-	isis.crop(from_=rotatedCub, to=croppedCub, samp=starting, line=starting, nsamp=oldsize, nline=oldsize)
+	isis.crop(from_=rotatedCub, to=croppedCub, samp_=int(starting), line_=int(starting), nsamp_=samples, nline_=lines)
 	isis.copylabel(from_=croppedCub, source_=mapCub, mapping="true")
 
 
