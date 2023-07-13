@@ -281,7 +281,7 @@ else:
 		lon = 360.0 - lon
 	lat = lat * spiceypy.dpr()
 	res = alt * 0.237767
-	if orbit == 41 or orbit == 43:
+	if orbit == 41 or orbit == 43 or orbit == 47:
 		magnify = 5
 	else:
 		magnify = 10

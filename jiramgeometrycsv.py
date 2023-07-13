@@ -54,16 +54,20 @@ def fileParse(inputs):
 	# split it by spaces then sorts the resulting array so that the value we need 
 	# is at a consistent position.
 	for line in datafile:
-		if 'START_TIME' in line:
+		if 'SPACECRAFT_CLOCK_START_COUNT' in line:
 			startTime = line
 			startTimes = startTime.split(" ")
 			startTimes = sorted(startTimes, reverse=True)
 			startTime = startTimes[2]
-		elif 'STOP_TIME' in line:
+			startTime = startTime.split('"')[1]
+			startTime = startTime.split('/')[1]
+		elif 'SPACECRAFT_CLOCK_STOP_COUNT' in line:
 			stopTime = line
 			stopTimes = stopTime.split(" ")
 			stopTimes = sorted(stopTimes, reverse=True)
 			stopTime = stopTimes[2]
+			stopTime = stopTime.split('"')[1]
+			stopTime = stopTime.split('/')[1]
 		elif 'PRODUCT_ID ' in line:
 			if line.startswith('PRODUCT_ID ', 0):
 				productID = line
@@ -81,8 +85,8 @@ def fileParse(inputs):
 			instrumentModes = sorted(instrumentModes, reverse=True)
 			instrumentMode = instrumentModes[0]
 	# start and stop time converted to seconds past J2000
-	etStart = spiceypy.str2et(startTime)
-	etStop = spiceypy.str2et(stopTime)
+	etStart = spiceypy.scs2e(-61999,startTime)
+	etStop = spiceypy.scs2e(-61999,stopTime)
 	# Image mid-time calculated
 	et = (etStart+etStop)/2
 	orbit = "PJ%s"%(orbit)
