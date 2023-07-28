@@ -40,7 +40,8 @@ iobasemap = 'Io_GalileoSSI-Voyager_Global_Mosaic_ClrMerge_2km_180W.jpg'
 spiceypy.furnsh( metakr )
 
 encounters = []
-encounters.append(('PJ55', '10/15/2023 06:47:21.739'))
+encounters.append(('PJ53', '07/31/2023 04:57:16.869'))
+encounters.append(('PJ55', '10/15/2023 06:47:21.331'))
 encounters.append(('PJ57', '12/30/2023 08:36:00.681'))
 encounters.append(('PJ58', '02/03/2024 17:48:35.743'))
 encounters.append(('PJ60', '04/09/2024 04:58:03.679'))
@@ -113,12 +114,12 @@ for encounter in encounters:
 		print( '{:s}'.format(perijove), '{:s}'.format(timstr), '{:0.4f}'.format(dist), '{:0.4f}'.format(alt), '{:0.4f}'.format(lat), '{:0.4f}'.format(lon), '{:0.4f}'.format(lat_slr * spiceypy.dpr()), '{:0.4f}'.format(lon_slr), '{:0.4f}'.format(phase), '{:0.4f}'.format(jiramres), '{:0.4f}'.format(jncamres), sep=',', file = sourceFile)
 		
 		# add points to plot if alitude is less than 20000 km
-		if alt <= 20000:
+		if alt <= 30000:
 			latplot.append(lat)
 			lonplot.append(lon)
 			phaseplot.append(phase)
 			altplot.append(alt)
-			altmath = 20000 - alt
+			altmath = 30000 - alt
 			altmath = altmath / 4000
 			altmath = math.exp(altmath)
 			altmath = altmath + 0.1
@@ -165,17 +166,18 @@ cmap = plt.get_cmap('gnuplot_r')
 
 # creates scatter plot with the longitude on the x-axis, latitude as the y-axis, and uses the phase angle 
 # to define the color
-plt.scatter(lonplot, latplot, c = phaseplot, s = altmathplot, cmap = cmap, vmin=0, vmax=180)
+plt.scatter(lonplot, latplot, c = phaseplot, s = 10, cmap = cmap, vmin=0, vmax=180)
 
 # adds points to plot for the c/a points for each encounter
 plt.scatter(calonplot, calatplot, c = 'w', s = 5)
 
 # create close approach point labels
 # could do this as a for loop, but need to adjust text alignment for each one
-ax.text(calonplot[0], calatplot[0], perijoveplot[0] + '\n' + str(caaltplot[0]) + ' km\n' + str(caphaseplot[0]) + '° phase', horizontalalignment='left', fontweight = 'bold', c = 'w')
-ax.text(calonplot[1], calatplot[1], perijoveplot[1] + '\n' + str(caaltplot[1]) + ' km\n' + str(caphaseplot[1]) + '° phase', horizontalalignment='right', fontweight = 'bold', c = 'w')
+ax.text(calonplot[0], calatplot[0], perijoveplot[0] + '\n' + str(caaltplot[0]) + ' km\n' + str(caphaseplot[0]) + '° phase', verticalalignment='top', horizontalalignment='right', fontweight = 'bold', c = 'w')
+ax.text(calonplot[1], calatplot[1], perijoveplot[1] + '\n' + str(caaltplot[1]) + ' km\n' + str(caphaseplot[1]) + '° phase', verticalalignment='bottom', horizontalalignment='left', fontweight = 'bold', c = 'w')
 ax.text(calonplot[2], calatplot[2], perijoveplot[2] + '\n' + str(caaltplot[2]) + ' km\n' + str(caphaseplot[2]) + '° phase', horizontalalignment='right', fontweight = 'bold', c = 'w')
 ax.text(calonplot[3], calatplot[3], perijoveplot[3] + '\n' + str(caaltplot[3]) + ' km\n' + str(caphaseplot[3]) + '° phase', horizontalalignment='right', fontweight = 'bold', c = 'w')
+ax.text(calonplot[4], calatplot[4], perijoveplot[4] + '\n' + str(caaltplot[4]) + ' km\n' + str(caphaseplot[4]) + '° phase', horizontalalignment='right', fontweight = 'bold', c = 'w')
 
 # sets graph labels and axis markers
 ax.set_xlabel('Longitude (°W)')
