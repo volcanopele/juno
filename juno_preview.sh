@@ -11,23 +11,23 @@
 COLORMAP=/Volumes/TouchT7/data/basemaps/io/merged_color_mosaic/Io_GalileoSSI-Voyager_Global_Mosaic_ClrMerge_1km.cub
 GREYMAP=/Volumes/TouchT7/data/basemaps/io/Io_GalileoSSI-Voyager_Global_Mosaic_1km.cub
 
-PERIJOVE="PJ58"
+PERIJOVE="PJ55"
 
 # 02/03/2024 17:55:30.602
-IMAGE_NAME="JNCE_20240203T175601"
-CLAT="11.411"
+IMAGE_NAME="JNCE_2023288_55C00015_V01"
+CLAT="30.179"
 
 # W longitude
-CLON="332.176"
+CLON="320.602"
 
 # HORIZONTAL_PIXEL_SCALE
-RES="7756.689"
+RES="40231.494"
 
 # use TARGET_ALTITUDE
-DISTANCE="11530.681"
+DISTANCE="59805.996"
 
-SLAT="3.0873"
-SLON="239.8903"
+SLAT="3.065"
+SLON="252.990"
 
 mkdir ~/Dropbox/Io/Juno/$PERIJOVE/preview
 cd ~/Dropbox/Io/Juno/$PERIJOVE/preview
