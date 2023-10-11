@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 import spiceypy
 import spiceypy.utils.support_types as stypes
+import PIL
 
 # this script plots the orbits of Juno between two dates
 
@@ -22,6 +23,8 @@ maxwin = 2 * maxivl
 relate = 'ABSMIN'
 jrmfrm = 'JUNO_JIRAM_I'
 jirmid = -61410
+method = 'Intercept/Ellipsoid'
+iobasemap = 'Io_GalileoSSI-Voyager_Global_Mosaic_ClrMerge_2km_180W.jpg'
 
 #
 # The adjustment value only applies to absolute extrema
@@ -34,7 +37,7 @@ spiceypy.furnsh( metakr )
 
 step = 8000
 # we are going to get positions between these two dates
-utc = ['Jul 1, 2023', 'Jul 1, 2024']
+utc = ['10/15/2023 06:27:21.316', '10/15/2023 07:07:21.316']
 
 # get et values one and two, we could vectorize str2et
 etOne = spiceypy.str2et(utc[0])
@@ -48,8 +51,14 @@ times = [x*(etTwo-etOne)/step + etOne for x in range(step)]
 print(times[0:3])
 
 #Run spkpos as a vectorized function
-positions, lightTimes = spiceypy.spkpos(scname, times, 'J2000', 'NONE', 'JUPITER BARYCENTER')
+positions, lightTimes = spiceypy.spkpos(scname, times, 'J2000', 'NONE', target)
 
+# altplot = []
+# for time in times:
+# 	[spoint, trgepc, srfvec] = spiceypy.subpnt( method, target, time, tarfrm, abcorr, scname )
+# 	alt = spiceypy.vnorm(srfvec)
+# 	altplot.append(alt)
+	
 # Positions is a 3xN vector of XYZ positions
 print("Positions: ")
 print(positions[0])
@@ -61,9 +70,31 @@ print(lightTimes[0])
 # Clean up the kernels
 spiceypy.kclear()
 
+# load bluemarble with PIL
+# bm = PIL.Image.open(iobasemap)
+# it's big, so I'll rescale it, convert to array, and divide by 256 to get RGB values that matplotlib accept 
+# bm = np.array(bm.resize((2048,1024)))/256.
+
+theta = np.linspace(0, 2.*np.pi, 100)
+phi = np.linspace(0, np.pi, 100)
+
+# Convert to Cartesian coordinates
+x = 1830. * np.outer(np.cos(theta), np.sin(phi))
+y = 1818.7 * np.outer(np.sin(theta), np.sin(phi))
+z = 1815.3 * np.outer(np.ones(np.size(theta)), np.cos(phi))
+
+
 positions = positions.T # positions is shaped (4000, 3), let's transpose to (3, 4000) for easier indexing
 fig = plt.figure(figsize=(9, 9))
 ax  = fig.add_subplot(111, projection='3d')
+# Adjust aspect ratio
+ax.set_box_aspect([1,1,1])
+
+ax.set_xlim(-20000, 20000)
+ax.set_ylim(-20000, 20000)
+ax.set_zlim(-20000, 20000)
 ax.plot(positions[0], positions[1], positions[2])
-plt.title('SpiceyPy Juno Position Example from Jul 1, 2023 to Jul 1, 2024')
+ax.plot_surface(x, y, z,  rstride=4, cstride=4, color='y')
+# ax.plot_surface(x, y, z, facecolors = bm)
+plt.title('Juno trajectory during PJ55 +/- 20 minutes')
 plt.show()
