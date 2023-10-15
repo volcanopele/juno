@@ -4,6 +4,7 @@ import math
 import spiceypy.utils.support_types as stypes
 import spiceypy
 from tkinter import filedialog as fd
+import kalasiris as isis
 
 ###
 # This script takes a time in UTC as input (either directly or via JIRAM 
@@ -60,22 +61,35 @@ def fileParse(inputs):
 			startTimes = startTime.split(" ")
 			startTimes = sorted(startTimes, reverse=True)
 			startTime = startTimes[2]
+			if startTime[0] == '"':
+				startTime = startTime[1:24]
 		elif 'STOP_TIME' in line:
 			stopTime = line
 			stopTimes = stopTime.split(" ")
 			stopTimes = sorted(stopTimes, reverse=True)
 			stopTime = stopTimes[2]
+			if stopTime[0] == '"':
+				stopTime = stopTime[1:24]
 		elif 'PRODUCT_ID ' in line:
 			if line.startswith('PRODUCT_ID ', 0):
 				productID = line
 				productIDs = productID.split(" ")
 				productIDs = sorted(productIDs, reverse=True)
 				productID = productIDs[1]
+				if productID == '=':
+					productID = productIDs[2]
+					productID = productID[1:26]
 		elif 'ORBIT_NUMBER' in line:
 			orbit = line
 			orbits = orbit.split(" ")
 			orbits = sorted(orbits, reverse=True)
 			orbit = orbits[2]
+			orbit = orbit[:2]
+	# debug
+	# print(startTime)
+	# print(productID)
+	# print(orbit)
+	
 	# start and stop time converted to seconds past J2000
 	etStart = spiceypy.str2et(startTime)
 	etStop = spiceypy.str2et(stopTime)
@@ -269,7 +283,6 @@ else:
 	print('Image Mid-Time (UTC),Number of Frames,"SC Distance (Io, km)","SC Altitude (Io, km)","SC Latitude (Io IAU, deg)","SC W Longitude (Io IAU, deg)","Sub-Solar Latitude (Io IAU, deg)","Sub-Solar W Longitude (Io IAU, deg)",Phase Angle,JIRAM scale (m/pixel),JunoCAM scale (m/pixel),North Clock Angle,PS North Clock Angle', file = outputFile)
 	print(timstr + ',' + '{:.7f}'.format(dist) + ',' + '{:.7f}'.format(alt) + ',' + '{:.7f}'.format(lat * spiceypy.dpr()) + ',' + '{:.7f}'.format(lon) + ',' + '{:.7f}'.format(lat_slr * spiceypy.dpr()) + ',' + '{:.7f}'.format(lon_slr) + ',' + '{:.7f}'.format(phase*spiceypy.dpr()) + ',' + '{:.7f}'.format(jiramres) + ',' + '{:.7f}'.format(jncamres) + ',' + '{:.7f}'.format(northclockangle) + ',' + '{:.7f}'.format(raw_clock_angle), file = outputFile)
 
-
 # OUTPUT ISIS script file
 
 if useLabel:
@@ -293,6 +306,10 @@ if useLabel:
 	print('map2map from=$BASEMAP to=$IMAGE_NAME.map.cub map=$IMAGE_NAME.map pixres=map defaultrange=map', file = isisFile)
 	print('rotate from=$IMAGE_NAME.map.cub to=$IMAGE_NAME.rotate.cub degrees=$ROTATION', file = isisFile)
 	print('isis2std from=$IMAGE_NAME.rotate.cub to=$IMAGE_NAME.map.tif format=tiff bittype=U16BIT stretch=manual minimum=0 maximum=1', file = isisFile)
+	isis.maptemplate(map_='jncammap.map', targopt_="user", targetname_=target, clat_=format(lat * spiceypy.dpr()), clon_=lon, dist_=alt, londir_="POSITIVEWEST", projection_="POINTPERSPECTIVE", resopt_="MPP", resolution_=jncamres, rngopt_="user", minlat_=-90, maxlat_=90, minlon_=0, maxlon_=360)
+	solarres = jncamres / 10
+	isis.maptemplate(map_='solarmap.map', targopt_="user", targetname_=target, clat_=format(lat_slr * spiceypy.dpr()), clon_=lon_slr, londir_="POSITIVEWEST", projection_="ORTHOGRAPHIC", resopt_="MPP", resolution_=solarres, rngopt_="user", minlat_=-90, maxlat_=90, minlon_=0, maxlon_=360)
+	
 
 spiceypy.unload( metakr )
 spiceypy.unload( 'io_north_pole.bsp' )
