@@ -179,6 +179,8 @@ def fileParse(inputs):
 			productTypes = productType.split(" ")
 			productTypes = sorted(productTypes, reverse=True)
 			productType = productTypes[1]
+			if productType == 'PRODUCT_TYPE':
+				productType = 'RDR'
 		elif 'INSTRUMENT_MODE_ID' in line:
 			instrumentMode = line
 			instrumentModes = instrumentMode.split(" ")
