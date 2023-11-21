@@ -283,6 +283,8 @@ else:
 	res = alt * 0.237767
 	if orbit == 41 or orbit == 43 or orbit == 47:
 		magnify = 5
+	elif orbit == 49:
+		magnify = 2
 	else:
 		magnify = 10
 	res /= magnify

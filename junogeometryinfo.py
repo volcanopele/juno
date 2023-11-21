@@ -307,7 +307,7 @@ if useLabel:
 	print('rotate from=$IMAGE_NAME.map.cub to=$IMAGE_NAME.rotate.cub degrees=$ROTATION', file = isisFile)
 	print('isis2std from=$IMAGE_NAME.rotate.cub to=$IMAGE_NAME.map.tif format=tiff bittype=U16BIT stretch=manual minimum=0 maximum=1', file = isisFile)
 	isis.maptemplate(map_='jncammap.map', targopt_="user", targetname_=target, clat_=format(lat * spiceypy.dpr()), clon_=lon, dist_=alt, londir_="POSITIVEWEST", projection_="POINTPERSPECTIVE", resopt_="MPP", resolution_=jncamres, rngopt_="user", minlat_=-90, maxlat_=90, minlon_=0, maxlon_=360)
-	solarres = jncamres / 10
+	solarres = jncamres / 5
 	isis.maptemplate(map_='solarmap.map', targopt_="user", targetname_=target, clat_=format(lat_slr * spiceypy.dpr()), clon_=lon_slr, londir_="POSITIVEWEST", projection_="ORTHOGRAPHIC", resopt_="MPP", resolution_=solarres, rngopt_="user", minlat_=-90, maxlat_=90, minlon_=0, maxlon_=360)
 	
 

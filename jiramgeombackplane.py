@@ -174,6 +174,11 @@ def fileParse(inputs):
 			orbits = orbit.split(" ")
 			orbits = sorted(orbits, reverse=True)
 			orbit = orbits[2]
+		elif 'PRODUCT_TYPE' in line:
+			productType = line
+			productTypes = productType.split(" ")
+			productTypes = sorted(productTypes, reverse=True)
+			productType = productTypes[1]
 		elif 'INSTRUMENT_MODE_ID' in line:
 			instrumentMode = line
 			instrumentModes = instrumentMode.split(" ")
@@ -193,7 +198,7 @@ def fileParse(inputs):
 	file.close()
 	
 	# tuple with image mid-time, product ID, and orbit output by function
-	return [et, productID, orbit, etStart, exposureTime, startTime, productCreate, sequenceNum, sequenceSam, dataType, instrumentMode]
+	return [et, productID, orbit, etStart, exposureTime, startTime, productCreate, sequenceNum, sequenceSam, dataType, instrumentMode, productType]
 
 # backplanegen is used on JUNO_JIRAM_I data and generates CSV files containing
 # geometric and illumination information for each pixel. The files generated are: 
@@ -477,6 +482,7 @@ for file in inputFiles:
 	sequenceSam = parseTuple[8]
 	dataType = parseTuple[9]
 	instrumentMode = parseTuple[10]
+	productType = parseTuple[11]
 	
 	# setup output files
 	# first generate the file names for each parameter CSV file
@@ -590,8 +596,13 @@ for file in inputFiles:
 		imageCub = fileBase + '.cub'
 		mirrorCub = fileBase + '.mirror.cub'
 	
-		# convert IMG to ISIS cube and mirror it (to match geometry)
-		isis.raw2isis(from_=image, to_=imageCub, samples_=samples, lines_=imgLines, bands_=1, bittype_="REAL")
+		# convert IMG to ISIS cube (while checking if the image is an EDR or RDR, 
+		# and mirror it (to match geometry)
+		if productType == 'RDR':
+			isis.raw2isis(from_=image, to_=imageCub, samples_=samples, lines_=imgLines, bands_=1, bittype_="REAL")
+		else:
+			isis.raw2isis(from_=image, to_=imageCub, samples_=samples, lines_=imgLines, bands_=1, bittype_="SIGNEDWORD")
+		
 		if dataType == 'IMAGE':
 			isis.mirror(from_=imageCub, to_=mirrorCub)
 		else:
