@@ -41,10 +41,11 @@ spiceypy.furnsh( metakr )
 
 encounters = []
 encounters.append(('PJ53', '07/31/2023 04:57:16.869'))
-encounters.append(('PJ55', '10/15/2023 06:47:21.331'))
-encounters.append(('PJ57', '12/30/2023 08:36:00.681'))
-encounters.append(('PJ58', '02/03/2024 17:48:35.743'))
-encounters.append(('PJ60', '04/09/2024 04:58:03.679'))
+encounters.append(('PJ55', '10/15/2023 06:47:15.626'))
+encounters.append(('PJ57', '12/30/2023 08:36:00.869'))
+encounters.append(('PJ58', '02/03/2024 17:48:35.419'))
+encounters.append(('PJ60', '04/09/2024 04:54:38.960'))
+encounters.append(('PJ62', '06/13/2024 16:01:17.266'))
 
 latplot = []
 lonplot = []
@@ -177,7 +178,8 @@ ax.text(calonplot[0], calatplot[0], perijoveplot[0] + '\n' + str(caaltplot[0]) +
 ax.text(calonplot[1], calatplot[1], perijoveplot[1] + '\n' + str(caaltplot[1]) + ' km\n' + str(caphaseplot[1]) + '° phase', verticalalignment='bottom', horizontalalignment='left', fontweight = 'bold', c = 'w')
 ax.text(calonplot[2], calatplot[2], perijoveplot[2] + '\n' + str(caaltplot[2]) + ' km\n' + str(caphaseplot[2]) + '° phase', horizontalalignment='right', fontweight = 'bold', c = 'w')
 ax.text(calonplot[3], calatplot[3], perijoveplot[3] + '\n' + str(caaltplot[3]) + ' km\n' + str(caphaseplot[3]) + '° phase', horizontalalignment='right', fontweight = 'bold', c = 'w')
-ax.text(calonplot[4], calatplot[4], perijoveplot[4] + '\n' + str(caaltplot[4]) + ' km\n' + str(caphaseplot[4]) + '° phase', horizontalalignment='right', fontweight = 'bold', c = 'w')
+ax.text(calonplot[4], calatplot[4], perijoveplot[4] + '\n' + str(caaltplot[4]) + ' km\n' + str(caphaseplot[4]) + '° phase', verticalalignment='bottom', horizontalalignment='left', fontweight = 'bold', c = 'w')
+ax.text(calonplot[5], calatplot[5], perijoveplot[5] + '\n' + str(caaltplot[5]) + ' km\n' + str(caphaseplot[5]) + '° phase', verticalalignment='bottom', horizontalalignment='left', fontweight = 'bold', c = 'w')
 
 # sets graph labels and axis markers
 ax.set_xlabel('Longitude (°W)')

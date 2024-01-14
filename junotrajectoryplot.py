@@ -37,7 +37,7 @@ spiceypy.furnsh( metakr )
 
 step = 8000
 # we are going to get positions between these two dates
-utc = ['10/15/2023 06:27:21.316', '10/15/2023 07:07:21.316']
+utc = ['12/30/2023 08:31:00.869', '12/30/2023 08:41:00.869']
 
 # get et values one and two, we could vectorize str2et
 etOne = spiceypy.str2et(utc[0])
@@ -96,5 +96,5 @@ ax.set_zlim(-20000, 20000)
 ax.plot(positions[0], positions[1], positions[2])
 ax.plot_surface(x, y, z,  rstride=4, cstride=4, color='y')
 # ax.plot_surface(x, y, z, facecolors = bm)
-plt.title('Juno trajectory during PJ55 +/- 20 minutes')
+plt.title('Juno trajectory during PJ57 +/- 5 minutes')
 plt.show()

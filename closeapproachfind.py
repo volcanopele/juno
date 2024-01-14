@@ -181,7 +181,6 @@ print( '     OBA = {:16.3f}'.format( sep ), file = sourceFile )
 print(catimstr, tabchar, '{:0.3f}'.format(alt), tabchar, '{:0.3f}'.format(lat), tabchar, '{:0.3f}'.format(lon), tabchar, '{:0.3f}'.format(velocity), tabchar, '{:0.3f}'.format(phase), tabchar, '{:0.3f}'.format(jlat), tabchar, '{:0.3f}'.format(jlon), tabchar, tabchar, '{:0.3f}'.format(sep), file = sourceFile)
 print( ' ', file = sourceFile )
 
-
 # calculate observation windows for Io
 
 
