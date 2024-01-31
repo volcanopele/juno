@@ -474,17 +474,19 @@ for file in inputFiles:
 	parseTuple = fileParse(file)
 	et = parseTuple[0]
 	timstr = spiceypy.timout( et, xlsxmt )
-	etStart = parseTuple[3]
+	etStart = float(parseTuple[3])
 	exposureTime = parseTuple[4]
 	sclkStart = parseTuple[5]
 	productID = parseTuple[1]
-	orbit = parseTuple[2]
+	orbit = int(parseTuple[2])
 	productCreate = parseTuple[6]
 	sequenceNum = parseTuple[7]
 	sequenceSam = parseTuple[8]
 	dataType = parseTuple[9]
 	instrumentMode = parseTuple[10]
 	productType = parseTuple[11]
+	if orbit >= 51:
+		etStart = etStart - 0.62
 	
 	# setup output files
 	# first generate the file names for each parameter CSV file

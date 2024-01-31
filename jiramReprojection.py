@@ -82,6 +82,7 @@ import pandas as pd
 # edit metakr to point to your Juno metakernel
 metakr = '/Users/perry/Dropbox/Io/Juno/kernels/juno_latest.tm'
 basemp = '/Users/perry/Dropbox/Io/map/Io_GalileoSSI-Voyager_Global_Mosaic_1km.cub'
+# basemp = '/Users/perry/Dropbox/Io/Juno/PJ57/JunoCam/JNCE_2023364_57C00024_V01/JNCE_2023364_57C00024_V01_RED.point.cub+1'
 sclkid = -61
 scname = 'JUNO'
 target = 'IO'
@@ -247,10 +248,12 @@ else:
 
 # parse label file for information about cube
 parseTuple = fileParse(jiramInput)
-etStart =  parseTuple[3]
+etStart =  float(parseTuple[3])
 productID = parseTuple[1]
 instrumentMode = parseTuple[6]
 orbit = int(parseTuple[2])
+if orbit >= 51:
+	etStart = etStart - 0.62
 
 # setup paths
 root = os.path.dirname(jiramInput)
@@ -283,7 +286,7 @@ else:
 	res = alt * 0.237767
 	if orbit == 41 or orbit == 43 or orbit == 47:
 		magnify = 5
-	elif orbit == 49:
+	elif orbit == 49 or orbit == 51 or orbit == 53:
 		magnify = 2
 	else:
 		magnify = 10
