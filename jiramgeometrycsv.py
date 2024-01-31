@@ -89,13 +89,14 @@ def fileParse(inputs):
 	etStop = spiceypy.scs2e(-61999,stopTime)
 	# Image mid-time calculated
 	et = (etStart+etStop)/2
+	orbit2 = orbit
 	orbit = "PJ%s"%(orbit)
 	
 	# close file
 	file.close()
 	
 	# tuple with image mid-time, product ID, and orbit output by function
-	return [et, productID, orbit, instrumentMode, etStart]
+	return [et, productID, orbit, instrumentMode, etStart, orbit2]
 	
 
 	
@@ -120,12 +121,17 @@ if numFiles > 0:
 	for file in inputFiles:
 		parseTuple = fileParse(file)
 		
-		et = parseTuple[0]
+		et = float(parseTuple[0])
 		timstr = spiceypy.timout( et, xlsxmt )
 		productID = parseTuple[1]
 		orbit = parseTuple[2]
+		orbit2 = int(parseTuple[5])
 		instrumentMode = parseTuple[3]
-		etStart = parseTuple[4]
+		etStart = float(parseTuple[4])
+		
+		if orbit2 >= 51:
+			et = et - 0.62
+			etStart = etStart - 0.62
 	
 		# Compute the apparent state of Io as seen from JUNO in the IAU_IO frame.  
 		# All of the ephemeris readers return states in units of kilometers and
