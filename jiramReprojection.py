@@ -20,6 +20,7 @@ import pandas as pd
 	# [-x <pixel offset>]
 	# [-y <pixel offset>] 
 	# [-m <full path to map file or cube file]
+	# [-b <m or l>]
 
 # i requires a JIRAM label file (extension .LBL) with a JIRAM image (extention .IMG) in the same directory
 # m accepts both a map file for use in ISIS's map2map program or a reprojected ISIS cube file
@@ -203,9 +204,10 @@ rotation = ''
 xOffset = 0
 yOffset = 0
 argv = sys.argv[1:]
+bandlimitation = "all"
 
 try:
-	opts, args = getopt.getopt(argv, 'i:m:x:y:z:', ['mapfile', 'infile'])
+	opts, args = getopt.getopt(argv, 'i:m:x:y:z:b:', ['mapfile', 'infile'])
 	for opt, arg in opts:
 		if opt in ("-m", "--mapfile"):
 			mapfile = arg
@@ -217,6 +219,9 @@ try:
 			yOffset = float(arg)
 		if opt in ("-z"):
 			rotation = float(arg)
+		if opt in ("-b"):
+			bandlimitation = arg
+			
 except getopt.GetoptError:
 	print('jiramReprojection.py -m <mapfile> -i <infile>')
 	sys.exit(2)
@@ -436,9 +441,15 @@ for i in range(0,arrayLines):
 			
 			# paint pixel in ISIS cube pixel value from JIRAM image (or make CSV file?)
 			if mbandVisible:
-				mapPanda.values[i][j] = mbandPanda.values[Y][X]
+				if bandlimitation == "l":
+					mapPanda.values[i][j] = -1024
+				else:
+					mapPanda.values[i][j] = mbandPanda.values[Y][X]
 			elif lbandVisible:
-				mapPanda.values[i][j] = lbandPanda.values[Y][X]
+				if bandlimitation == "m":
+					mapPanda.values[i][j] = -1024
+				else:
+					mapPanda.values[i][j] = lbandPanda.values[Y][X]
 			else:
 				mapPanda.values[i][j] = -1024
 				
