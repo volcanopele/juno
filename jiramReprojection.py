@@ -84,6 +84,7 @@ import pandas as pd
 metakr = '/Users/perry/Dropbox/Io/Juno/kernels/juno_latest.tm'
 basemp = '/Users/perry/Dropbox/Io/map/Io_GalileoSSI-Voyager_Global_Mosaic_1km.cub'
 # basemp = '/Users/perry/Dropbox/Io/Juno/PJ57/JunoCam/JNCE_2023364_57C00024_V01/JNCE_2023364_57C00024_V01_RED.point.cub+1'
+# basemp = '/Users/perry/Dropbox/Io/Juno/PJ55/JunoCam/map/Dec2023update/PJ55_JNC.simp.cub+1'
 sclkid = -61
 scname = 'JUNO'
 target = 'IO'
@@ -264,6 +265,8 @@ if orbit >= 51:
 root = os.path.dirname(jiramInput)
 name = os.path.basename(jiramInput)
 fileBase = root + '/' + productID
+
+print("Now working on " + productID)
 
 ### REPROJECTED CUBE SETUP ###
 mapCub = fileBase + '.map.cub'
