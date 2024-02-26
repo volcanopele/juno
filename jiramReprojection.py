@@ -83,8 +83,9 @@ import pandas as pd
 # edit metakr to point to your Juno metakernel
 metakr = '/Users/perry/Dropbox/Io/Juno/kernels/juno_latest.tm'
 basemp = '/Users/perry/Dropbox/Io/map/Io_GalileoSSI-Voyager_Global_Mosaic_1km.cub'
-basemp = '/Users/perry/Dropbox/Io/Galileo/E14/controlled/14ISPOLAR_01.photom.cub+1'
-# basemp = '/Users/perry/Dropbox/Io/Juno/PJ55/JunoCam/map/Dec2023update/PJ55_JNC.simp.cub+1'
+# basemp = '/Users/perry/Dropbox/Io/Galileo/E14/controlled/14ISPOLAR_01.photom.cub+1'
+# basemp = '/Users/perry/Dropbox/Io/Juno/PJ57/JunoCam/JNCE_2023364_57C00025_V01/JNCE_2023364_57C00025_V01_GREEN.photom.cub+1'
+# basemp = '/Users/perry/Dropbox/Io/Juno/PJ55/JunoCam/map/Feb2023update/PJ55_JNC.simp.cub+1'
 sclkid = -61
 scname = 'JUNO'
 target = 'IO'
