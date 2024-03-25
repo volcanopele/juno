@@ -55,7 +55,7 @@ ax.imshow(img, extent=[360, 0, -90, 90])
 # sets color gradient to use in scatter plot
 cmap = plt.get_cmap('inferno')
 
-plt.scatter(longitude, latitude, c = value, s = 200, cmap = cmap, edgecolor='black', norm=matplotlib.colors.LogNorm(vmax=70.0, vmin=0.02), alpha=0.9)
+plt.scatter(longitude, latitude, c = value, s = 150, cmap = cmap, edgecolor='black', norm=matplotlib.colors.LogNorm(vmax=70.0, vmin=0.02), alpha=0.9)
 # plt.scatter(longitude, latitude, c = value, s = sizevalues, cmap = cmap, edgecolor='black', norm=matplotlib.colors.LogNorm(), alpha=0.8)
 # plt.scatter(longitude, latitude, c = value, s = 100, cmap = cmap, edgecolor='black', norm=matplotlib.colors.LogNorm(), alpha=0.8)
 
@@ -63,7 +63,7 @@ plt.scatter(longitude, latitude, c = value, s = 200, cmap = cmap, edgecolor='bla
 ax.set_xlabel('Longitude (°W)', fontsize=25)
 ax.set_ylabel('Latitude', fontsize=25)
 # ax.set_title('Io Hotspots seen by Juno - ' + perijove)
-ax.set_title('Io Hotspots seen by Juno - ' + '2017 – 2022 (Maximum Unsaturated Brightness)', fontsize=35, pad=20)
+ax.set_title('Io Hotspots seen by Juno - ' + '2017 – 2023 (Maximum Unsaturated Brightness)', fontsize=35, pad=20)
 ax.set_yticks([-90, -60, -30, 0, 30, 60, 90], minor = False)
 ax.set_yticks([-75, -45, -15, 15, 45, 75], minor = True)
 ax.set_xticks([0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330, 360], minor = False)
