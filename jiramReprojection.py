@@ -21,9 +21,12 @@ import pandas as pd
 	# [-y <pixel offset>] 
 	# [-m <full path to map file or cube file]
 	# [-b <m or l>]
+	# [-s <fill or null]
 
 # i requires a JIRAM label file (extension .LBL) with a JIRAM image (extention .IMG) in the same directory
 # m accepts both a map file for use in ISIS's map2map program or a reprojected ISIS cube file
+
+# s either nulls out pixels that are above a DN of 12000 or fills them with the band radiance equivalent of DN 12000
 
 # example use
 
@@ -208,9 +211,10 @@ xOffset = 0
 yOffset = 0
 argv = sys.argv[1:]
 bandlimitation = "all"
+saturation = "no"
 
 try:
-	opts, args = getopt.getopt(argv, 'i:m:x:y:z:b:', ['mapfile', 'infile'])
+	opts, args = getopt.getopt(argv, 'i:m:x:y:z:b:s:', ['mapfile', 'infile'])
 	for opt, arg in opts:
 		if opt in ("-m", "--mapfile"):
 			mapfile = arg
@@ -224,6 +228,9 @@ try:
 			rotation = float(arg)
 		if opt in ("-b"):
 			bandlimitation = arg
+		if opt in ("-s"):
+			saturation = arg
+			
 			
 except getopt.GetoptError:
 	print('jiramReprojection.py -m <mapfile> -i <infile>')
@@ -262,6 +269,9 @@ instrumentMode = parseTuple[6]
 orbit = int(parseTuple[2])
 if orbit >= 51:
 	etStart = etStart - 0.62
+exposureTime = parseTuple[4]
+saturationLevel = 0.0073 / exposureTime
+safeLevel = saturationLevel * 0.006 / 0.0073
 
 # setup paths
 root = os.path.dirname(jiramInput)
@@ -297,6 +307,8 @@ else:
 	if orbit == 41 or orbit == 43 or orbit == 47:
 		magnify = 5
 	elif orbit == 49 or orbit == 51 or orbit == 53:
+		magnify = 2
+	elif orbit == 55:
 		magnify = 2
 	else:
 		magnify = 10
@@ -448,10 +460,18 @@ for i in range(0,arrayLines):
 			if mbandVisible:
 				if bandlimitation == "l":
 					mapPanda.values[i][j] = -1024
+				elif mbandPanda.values[Y][X] > safeLevel and saturation == "fill":
+					mapPanda.values[i][j] = safeLevel
+				elif mbandPanda.values[Y][X] > safeLevel and saturation == "null":
+					mapPanda.values[i][j] = -1024
 				else:
 					mapPanda.values[i][j] = mbandPanda.values[Y][X]
 			elif lbandVisible:
 				if bandlimitation == "m":
+					mapPanda.values[i][j] = -1024
+				elif lbandPanda.values[Y][X] > safeLevel and saturation == "fill":
+					mapPanda.values[i][j] = safeLevel
+				elif lbandPanda.values[Y][X] > safeLevel and saturation == "null":
 					mapPanda.values[i][j] = -1024
 				else:
 					mapPanda.values[i][j] = lbandPanda.values[Y][X]
@@ -460,7 +480,8 @@ for i in range(0,arrayLines):
 				
 # Export CSV to ISIS image
 mapPanda.to_csv(reprojectCSV, index=False, header=False)
-isis.ascii2isis(from_=reprojectCSV, to_=reprojectedCub, order_="bsq", samples_=samples, lines_=lines, bands_=1, skip_=0, setnullrange_="true", nullmin_=-2000, nullmax_=0.00002)
+# usually use nullmax_=0.00002 but for 55 use -0.0025
+isis.ascii2isis(from_=reprojectCSV, to_=reprojectedCub, order_="bsq", samples_=samples, lines_=lines, bands_=1, skip_=0, setnullrange_="true", nullmin_=-2000, nullmax_=-0.0026)
 
 # rotate if requested
 if rotation == "":

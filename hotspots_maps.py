@@ -27,6 +27,8 @@ method = 'Intercept/Ellipsoid'
 method2 = 'ELLIPSOID'
 stepsz = 1.0
 step = 4800
+backgd = "Io_GalileoSSI-Voyager_Global_Mosaic_2km_180W.jpg"
+backgd = "New_Io_photomosaic_2km_grey.jpg"
 
 file = '/Users/perry/Dropbox/Io/Juno/max_brightness.csv'
 
@@ -43,7 +45,8 @@ sizevalues = np.add(sizevalues, 10)
 
 # creates graph of the ground plots for all encounters
 # load map as background image
-img = plt.imread("Io_GalileoSSI-Voyager_Global_Mosaic_2km_180W.jpg")
+img = plt.imread(backgd)
+
 
 # initialize plot
 fig, ax = plt.subplots()
@@ -55,7 +58,7 @@ ax.imshow(img, extent=[360, 0, -90, 90])
 # sets color gradient to use in scatter plot
 cmap = plt.get_cmap('inferno')
 
-plt.scatter(longitude, latitude, c = value, s = 150, cmap = cmap, edgecolor='black', norm=matplotlib.colors.LogNorm(vmax=70.0, vmin=0.02), alpha=0.9)
+plt.scatter(longitude, latitude, c = value, s = 50, cmap = cmap, edgecolor='black', norm=matplotlib.colors.LogNorm(vmax=70.0, vmin=0.02), alpha=0.9)
 # plt.scatter(longitude, latitude, c = value, s = sizevalues, cmap = cmap, edgecolor='black', norm=matplotlib.colors.LogNorm(), alpha=0.8)
 # plt.scatter(longitude, latitude, c = value, s = 100, cmap = cmap, edgecolor='black', norm=matplotlib.colors.LogNorm(), alpha=0.8)
 
