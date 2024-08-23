@@ -41,11 +41,11 @@ spiceypy.furnsh( metakr )
 
 encounters = []
 encounters.append(('PJ53', '07/31/2023 04:57:16.869'))
-encounters.append(('PJ55', '10/15/2023 06:47:15.626'))
-encounters.append(('PJ57', '12/30/2023 08:36:00.869'))
-encounters.append(('PJ58', '02/03/2024 17:48:35.419'))
-encounters.append(('PJ60', '04/09/2024 04:54:38.960'))
-encounters.append(('PJ62', '06/13/2024 16:01:17.266'))
+encounters.append(('PJ55', '10/15/2023 06:47:15.703'))
+encounters.append(('PJ57', '12/30/2023 08:36:00.836'))
+encounters.append(('PJ58', '02/03/2024 17:48:35.126'))
+encounters.append(('PJ60', '04/09/2024 04:54:39.730'))
+encounters.append(('PJ62', '06/13/2024 16:01:14.018'))
 
 latplot = []
 lonplot = []
@@ -115,12 +115,12 @@ for encounter in encounters:
 		print( '{:s}'.format(perijove), '{:s}'.format(timstr), '{:0.4f}'.format(dist), '{:0.4f}'.format(alt), '{:0.4f}'.format(lat), '{:0.4f}'.format(lon), '{:0.4f}'.format(lat_slr * spiceypy.dpr()), '{:0.4f}'.format(lon_slr), '{:0.4f}'.format(phase), '{:0.4f}'.format(jiramres), '{:0.4f}'.format(jncamres), sep=',', file = sourceFile)
 		
 		# add points to plot if alitude is less than 20000 km
-		if alt <= 30000:
+		if alt <= 60000:
 			latplot.append(lat)
 			lonplot.append(lon)
 			phaseplot.append(phase)
 			altplot.append(alt)
-			altmath = 30000 - alt
+			altmath = 60000 - alt
 			altmath = altmath / 4000
 			altmath = math.exp(altmath)
 			altmath = altmath + 0.1
@@ -192,8 +192,8 @@ ax.set_xticks([15, 45, 75, 105, 135, 165, 195, 225, 255, 285, 315, 345], minor =
 
 #create color bar for phase angle
 mappable = ax.collections[0]
-cbar = plt.colorbar(mappable=mappable)
-cbar.set_label('Phase Angle', labelpad=+1)
+cbar = plt.colorbar(mappable=mappable, shrink=0.75)
+cbar.set_label('Phase Angle', labelpad=+2)
 
 # creates grid
 # ax.grid(True)

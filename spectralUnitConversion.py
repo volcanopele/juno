@@ -105,9 +105,9 @@ for i in range(0,len(hotspotArray.index)):
 	
 		(trgepc, srfvec, phase, incdnc, emissn) = spiceypy.ilumin(method2, target, et, tarfrm, abcorr, scname, spoint)
 		ema = emissn * spiceypy.dpr()
-		if ema > 90:
-			ema = 88
-			emissn = ema * spiceypy.rpd()
+		# if ema > 90:
+# 			ema = 88
+# 			emissn = ema * spiceypy.rpd()
 		inc = incdnc * spiceypy.dpr()
 		pha = phase * spiceypy.dpr()
 			
