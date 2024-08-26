@@ -213,9 +213,10 @@ argv = sys.argv[1:]
 bandlimitation = "all"
 saturation = "no"
 spectral = False
+bkgSubtract = False
 
 try:
-	opts, args = getopt.getopt(argv, 'i:m:x:y:z:b:s:spec:', ['mapfile', 'infile'])
+	opts, args = getopt.getopt(argv, 'i:m:x:y:z:b:s:spec:subtract:', ['mapfile', 'infile'])
 	for opt, arg in opts:
 		if opt in ("-m", "--mapfile"):
 			mapfile = arg
@@ -233,7 +234,8 @@ try:
 			saturation = arg
 		if opt in ("-spec"):
 			spectral = True
-			
+		if opt in ("-subtract"):
+			bkgSubtract = True
 			
 except getopt.GetoptError:
 	print('jiramReprojection.py -m <mapfile> -i <infile>')
@@ -429,6 +431,7 @@ for i in range(0,arrayLines):
 			
 			# add one here to check to make sure that feature is on the visible face of Io
 			emissndeg = emissn * spiceypy.dpr()
+			inciddeg = incdnc * spiceypy.dpr()
 			if emissndeg <= 89.999:
 				emissionGood = True
 			else:
@@ -481,12 +484,23 @@ for i in range(0,arrayLines):
 					mapPanda.values[i][j] = -1024
 				else:
 					if spectral:
-						ema = emissndeg
+						# calculate values needed for band radiance to spectral radiance conversion
 						alt = spiceypy.vnorm( srfvec )
+						# calculate area of pixel
 						pixSize = alt * 0.237767
 						pixSize *= pixSize
 						# calculate spectral radiance
-						specRad = mbandPanda.values[Y][X] / 0.4975 * math.pi * pixSize / math.cos(emissn) / 1000000000
+						specRad = mbandPanda.values[Y][X]
+						# worlds worst photometric model
+						if bkgSubtract:
+							if inciddeg < 90:
+								bckgrnd = 0.0097 * math.cos(incdnc) + 0.0024
+							else:
+								bckgrnd = 0
+							specRad -= bckgrnd
+							specRad = specRad / 0.4975 * math.pi * pixSize / math.cos(emissn) / 1000000000
+						else:
+							specRad = specRad / 0.4975 * math.pi * pixSize / math.cos(emissn) / 1000000000
 						mapPanda.values[i][j] = specRad
 					else:
 						mapPanda.values[i][j] = mbandPanda.values[Y][X]
@@ -499,12 +513,23 @@ for i in range(0,arrayLines):
 					mapPanda.values[i][j] = -1024
 				else:
 					if spectral:
-						ema = emissndeg
+						# calculate values needed for band radiance to spectral radiance conversion
 						alt = spiceypy.vnorm( srfvec )
+						# calculate area of pixel
 						pixSize = alt * 0.237767
 						pixSize *= pixSize
 						# calculate spectral radiance
-						specRad = lbandPanda.values[Y][X] / 0.29 * math.pi * pixSize / math.cos(emissn) / 1000000000
+						specRad = lbandPanda.values[Y][X]
+						# worlds worst photometric model
+						if bkgSubtract:
+							if inciddeg < 90:
+								bckgrnd = 0.0251 * math.cos(incdnc) + 0.0018
+							else:
+								bckgrnd = 0
+							specRad -= bckgrnd
+							specRad = specRad / 0.4975 * math.pi * pixSize / math.cos(emissn) / 1000000000
+						else:
+							specRad = specRad / 0.4975 * math.pi * pixSize / math.cos(emissn) / 1000000000
 						mapPanda.values[i][j] = specRad
 					else:
 						mapPanda.values[i][j] = lbandPanda.values[Y][X]
@@ -514,7 +539,10 @@ for i in range(0,arrayLines):
 # Export CSV to ISIS image
 mapPanda.to_csv(reprojectCSV, index=False, header=False)
 # usually use nullmax_=0.00002 but for 55 use -0.0025
-isis.ascii2isis(from_=reprojectCSV, to_=reprojectedCub, order_="bsq", samples_=samples, lines_=lines, bands_=1, skip_=0, setnullrange_="true", nullmin_=-2000, nullmax_=-0.0026)
+if bkgSubtract:
+	isis.ascii2isis(from_=reprojectCSV, to_=reprojectedCub, order_="bsq", samples_=samples, lines_=lines, bands_=1, skip_=0, setnullrange_="true", nullmin_=-2000, nullmax_=-0.01)
+else:
+	isis.ascii2isis(from_=reprojectCSV, to_=reprojectedCub, order_="bsq", samples_=samples, lines_=lines, bands_=1, skip_=0, setnullrange_="true", nullmin_=-2000, nullmax_=-0.0026)
 
 # rotate if requested
 if rotation == "":
