@@ -447,11 +447,14 @@ def backplanecubegen(backplane, bpName):
 
 splitimages = False
 offsetCSV = False
+spectral = False
 for i in sys.argv:
 	if i == '-split':
 		splitimages = True
 	elif i == '-offset':
 		offsetCSV = True
+	elif i == '-spec':
+		spectral = True	
 
 ####################
 ### SCRIPT START ###

@@ -7,7 +7,7 @@ import tkinter as tk
 import os, sys, getopt
 import kalasiris as isis
 import pandas as pd
-
+import numpy as np
 
 ####################
 ###### README ######
@@ -212,9 +212,10 @@ yOffset = 0
 argv = sys.argv[1:]
 bandlimitation = "all"
 saturation = "no"
+spectral = False
 
 try:
-	opts, args = getopt.getopt(argv, 'i:m:x:y:z:b:s:', ['mapfile', 'infile'])
+	opts, args = getopt.getopt(argv, 'i:m:x:y:z:b:s:spec:', ['mapfile', 'infile'])
 	for opt, arg in opts:
 		if opt in ("-m", "--mapfile"):
 			mapfile = arg
@@ -230,6 +231,8 @@ try:
 			bandlimitation = arg
 		if opt in ("-s"):
 			saturation = arg
+		if opt in ("-spec"):
+			spectral = True
 			
 			
 except getopt.GetoptError:
@@ -352,6 +355,18 @@ isis.phocube(from_=mapCub, to_=longitudeCub, source="PROJECTION", latitude="fals
 isis.isis2ascii(from_=longitudeCub, to_=longitudeCSV, header_="no", delimiter_=delimiter, setpixelvalues="yes", nullvalue_=-1024, hrsvalue_=1)
 longitudePanda = pd.read_csv(longitudeCSV, header=None, dtype=float)
 
+# create pixel arrays
+[shape, frame, bsight, nbounds, bounds] = spiceypy.getfov(lbandfrm, 20)
+dx = 0.000237767
+dy = 0.000237767
+offsetX = xOffset * dx * -1
+offsetY = yOffset * dy * -1
+xp = np.arange(0.5,431.51,1)*dx + bounds[3,1] + offsetX
+yp = bounds[3,0] - np.arange(0.5,127.51,1)*dy - offsetY
+zp = bounds[0,2]
+
+
+
 # create JIRAM image arrays
 if instrumentMode == "I1":
 	lBandavailable = True
@@ -465,7 +480,16 @@ for i in range(0,arrayLines):
 				elif mbandPanda.values[Y][X] > safeLevel and saturation == "null":
 					mapPanda.values[i][j] = -1024
 				else:
-					mapPanda.values[i][j] = mbandPanda.values[Y][X]
+					if spectral:
+						ema = emissndeg
+						alt = spiceypy.vnorm( srfvec )
+						pixSize = alt * 0.237767
+						pixSize *= pixSize
+						# calculate spectral radiance
+						specRad = mbandPanda.values[Y][X] / 0.4975 * math.pi * pixSize / math.cos(emissn) / 1000000000
+						mapPanda.values[i][j] = specRad
+					else:
+						mapPanda.values[i][j] = mbandPanda.values[Y][X]
 			elif lbandVisible:
 				if bandlimitation == "m":
 					mapPanda.values[i][j] = -1024
@@ -474,7 +498,16 @@ for i in range(0,arrayLines):
 				elif lbandPanda.values[Y][X] > safeLevel and saturation == "null":
 					mapPanda.values[i][j] = -1024
 				else:
-					mapPanda.values[i][j] = lbandPanda.values[Y][X]
+					if spectral:
+						ema = emissndeg
+						alt = spiceypy.vnorm( srfvec )
+						pixSize = alt * 0.237767
+						pixSize *= pixSize
+						# calculate spectral radiance
+						specRad = lbandPanda.values[Y][X] / 0.29 * math.pi * pixSize / math.cos(emissn) / 1000000000
+						mapPanda.values[i][j] = specRad
+					else:
+						mapPanda.values[i][j] = lbandPanda.values[Y][X]
 			else:
 				mapPanda.values[i][j] = -1024
 				
