@@ -91,12 +91,13 @@ def fileParse(inputs):
 	et = (etStart+etStop)/2
 	orbit2 = orbit
 	orbit = "PJ%s"%(orbit)
+	expTime = etStop - etStart
 	
 	# close file
 	file.close()
 	
 	# tuple with image mid-time, product ID, and orbit output by function
-	return [et, productID, orbit, instrumentMode, etStart, orbit2]
+	return [et, productID, orbit, instrumentMode, etStart, orbit2, expTime]
 	
 
 	
@@ -116,7 +117,7 @@ numFiles = len(inputFiles)
 
 if numFiles > 0:
 	outputFile = open( 'test.csv', 'w' )
-	print('Perijove,Observation,Image Mid-Time (UTC),"SC Distance (Io, km)","SC Altitude (Io, km)","SC Latitude (Io IAU, deg)","SC W Longitude (Io IAU, deg)","Sub-Solar Latitude (Io IAU, deg)","Sub-Solar W Longitude (Io IAU, deg)",Phase Angle,JIRAM scale (m/pixel),JunoCAM scale (m/pixel),North Clock Angle,L-band Center X, L-band Center Y, M-band Center X, M-band Center Y', file = outputFile)
+	print('Perijove,Observation,Image Mid-Time (UTC),"SC Distance (Io, km)","SC Altitude (Io, km)","SC Latitude (Io IAU, deg)","SC W Longitude (Io IAU, deg)","Sub-Solar Latitude (Io IAU, deg)","Sub-Solar W Longitude (Io IAU, deg)",Phase Angle,JIRAM scale (m/pixel),JunoCAM scale (m/pixel),North Clock Angle,L-band Center X, L-band Center Y, M-band Center X, M-band Center Y, Exposure Time (s)', file = outputFile)
 	
 	for file in inputFiles:
 		parseTuple = fileParse(file)
@@ -128,6 +129,7 @@ if numFiles > 0:
 		orbit2 = int(parseTuple[5])
 		instrumentMode = parseTuple[3]
 		etStart = float(parseTuple[4])
+		expTime = float(parseTuple[6])
 		
 		if orbit2 >= 51:
 			et = et - 0.62
@@ -242,7 +244,7 @@ if numFiles > 0:
 
 		# OUTPUT CSV LINE
 
-		print(orbit + ',' + productID + ',' + timstr + ',' + '{:.3f}'.format(dist) + ',' + '{:.3f}'.format(alt) + ',' + '{:.3f}'.format(lat * spiceypy.dpr()) + ',' + '{:.3f}'.format(lon) + ',' + '{:.3f}'.format(lat_slr * spiceypy.dpr()) + ',' + '{:.3f}'.format(lon_slr) + ',' + '{:.3f}'.format(phase*spiceypy.dpr()) + ',' + '{:.3f}'.format(jiramres) + ',' + '{:.3f}'.format(jncamres) + ',' + '{:.3f}'.format(northclockangle) + ',' + '{:.3f}'.format(centerXl) + ',' + '{:.3f}'.format(centerYl) + ',' + '{:.3f}'.format(centerXm) + ',' + '{:.3f}'.format(centerYm), file = outputFile)
+		print(orbit + ',' + productID + ',' + timstr + ',' + '{:.3f}'.format(dist) + ',' + '{:.3f}'.format(alt) + ',' + '{:.3f}'.format(lat * spiceypy.dpr()) + ',' + '{:.3f}'.format(lon) + ',' + '{:.3f}'.format(lat_slr * spiceypy.dpr()) + ',' + '{:.3f}'.format(lon_slr) + ',' + '{:.3f}'.format(phase*spiceypy.dpr()) + ',' + '{:.3f}'.format(jiramres) + ',' + '{:.3f}'.format(jncamres) + ',' + '{:.3f}'.format(northclockangle) + ',' + '{:.3f}'.format(centerXl) + ',' + '{:.3f}'.format(centerYl) + ',' + '{:.3f}'.format(centerXm) + ',' + '{:.3f}'.format(centerYm) + ',' + '{:.3f}'.format(expTime), file = outputFile)
 else:
 	print("No files entered")
 
