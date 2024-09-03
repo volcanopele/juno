@@ -5,6 +5,7 @@ import spiceypy.utils.support_types as stypes
 import spiceypy
 import matplotlib.pyplot as plt
 import numpy as np
+import matplotlib
 
 ############
 # This script produces CSV files for each Juno encounter with Io
@@ -34,10 +35,14 @@ adjust = 0.0
 method = 'Intercept/Ellipsoid'
 method2 = 'ELLIPSOID'
 stepsz = 1.0
-step = 4800
-iobasemap = 'Io_GalileoSSI-Voyager_Global_Mosaic_ClrMerge_2km_180W.jpg'
+step = 9600
+iobasemap = 'Io_GalileoSSI-Voyager_Global_Mosaic_ClrMerge_2km_180W_PJ57lighting.jpg'
 
 spiceypy.furnsh( metakr )
+
+#plot type
+# Altitude or Phase
+plotType = 'Altitude'
 
 encounters = []
 encounters.append(('PJ53', '07/31/2023 04:57:16.869'))
@@ -67,8 +72,8 @@ for encounter in encounters:
 	et = spiceypy.str2et(utc)
 
 	# get et values one and two, we could vectorize str2et
-	etOne = et - 1200
-	etTwo = et + 1200
+	etOne = et - 2400
+	etTwo = et + 2400
 
 	print("ET One: {}, ET Two: {}".format(etOne, etTwo))
 
@@ -115,7 +120,7 @@ for encounter in encounters:
 		print( '{:s}'.format(perijove), '{:s}'.format(timstr), '{:0.4f}'.format(dist), '{:0.4f}'.format(alt), '{:0.4f}'.format(lat), '{:0.4f}'.format(lon), '{:0.4f}'.format(lat_slr * spiceypy.dpr()), '{:0.4f}'.format(lon_slr), '{:0.4f}'.format(phase), '{:0.4f}'.format(jiramres), '{:0.4f}'.format(jncamres), sep=',', file = sourceFile)
 		
 		# add points to plot if alitude is less than 20000 km
-		if alt <= 60000:
+		if alt <= 40000:
 			latplot.append(lat)
 			lonplot.append(lon)
 			phaseplot.append(phase)
@@ -167,36 +172,51 @@ cmap = plt.get_cmap('gnuplot_r')
 
 # creates scatter plot with the longitude on the x-axis, latitude as the y-axis, and uses the phase angle 
 # to define the color
-plt.scatter(lonplot, latplot, c = phaseplot, s = 10, cmap = cmap, vmin=0, vmax=180)
+if plotType == 'Phase':
+	plt.scatter(lonplot, latplot, c = phaseplot, s = 10, cmap = cmap, vmin=0, vmax=180)
+elif plotType == 'Altitude':
+	plt.scatter(lonplot, latplot, c = altplot, s = 10, cmap = cmap, norm=matplotlib.colors.LogNorm(vmax=40000, vmin=1500))
 
 # adds points to plot for the c/a points for each encounter
 plt.scatter(calonplot, calatplot, c = 'w', s = 5)
 
 # create close approach point labels
 # could do this as a for loop, but need to adjust text alignment for each one
-ax.text(calonplot[0], calatplot[0], perijoveplot[0] + '\n' + str(caaltplot[0]) + ' km\n' + str(caphaseplot[0]) + '° phase', verticalalignment='top', horizontalalignment='right', fontweight = 'bold', c = 'w')
-ax.text(calonplot[1], calatplot[1], perijoveplot[1] + '\n' + str(caaltplot[1]) + ' km\n' + str(caphaseplot[1]) + '° phase', verticalalignment='bottom', horizontalalignment='left', fontweight = 'bold', c = 'w')
-ax.text(calonplot[2], calatplot[2], perijoveplot[2] + '\n' + str(caaltplot[2]) + ' km\n' + str(caphaseplot[2]) + '° phase', horizontalalignment='right', fontweight = 'bold', c = 'w')
-ax.text(calonplot[3], calatplot[3], perijoveplot[3] + '\n' + str(caaltplot[3]) + ' km\n' + str(caphaseplot[3]) + '° phase', horizontalalignment='right', fontweight = 'bold', c = 'w')
-ax.text(calonplot[4], calatplot[4], perijoveplot[4] + '\n' + str(caaltplot[4]) + ' km\n' + str(caphaseplot[4]) + '° phase', verticalalignment='bottom', horizontalalignment='left', fontweight = 'bold', c = 'w')
-ax.text(calonplot[5], calatplot[5], perijoveplot[5] + '\n' + str(caaltplot[5]) + ' km\n' + str(caphaseplot[5]) + '° phase', verticalalignment='bottom', horizontalalignment='left', fontweight = 'bold', c = 'w')
+ax.text(calonplot[0], calatplot[0], perijoveplot[0] + '\n' + str(caaltplot[0]) + ' km\n' + str(caphaseplot[0]) + '° phase', verticalalignment='top', horizontalalignment='right', fontweight = 'bold', c = 'w', fontsize=15)
+ax.text(calonplot[1], calatplot[1], perijoveplot[1] + '\n' + str(caaltplot[1]) + ' km\n' + str(caphaseplot[1]) + '° phase', verticalalignment='bottom', horizontalalignment='left', fontweight = 'bold', c = 'w', fontsize=15)
+ax.text(calonplot[2], calatplot[2], perijoveplot[2] + '\n' + str(caaltplot[2]) + ' km\n' + str(caphaseplot[2]) + '° phase', horizontalalignment='right', fontweight = 'bold', c = 'w', fontsize=15)
+ax.text(calonplot[3], calatplot[3], perijoveplot[3] + '\n' + str(caaltplot[3]) + ' km\n' + str(caphaseplot[3]) + '° phase', horizontalalignment='right', fontweight = 'bold', c = 'w', fontsize=15)
+ax.text(calonplot[4], calatplot[4], perijoveplot[4] + '\n' + str(caaltplot[4]) + ' km\n' + str(caphaseplot[4]) + '° phase', verticalalignment='bottom', horizontalalignment='left', fontweight = 'bold', c = 'w', fontsize=15)
+ax.text(calonplot[5], calatplot[5], perijoveplot[5] + '\n' + str(caaltplot[5]) + ' km\n' + str(caphaseplot[5]) + '° phase', verticalalignment='top', horizontalalignment='left', fontweight = 'bold', c = 'w', fontsize=15)
 
 # sets graph labels and axis markers
-ax.set_xlabel('Longitude (°W)')
-ax.set_ylabel('Latitude')
-ax.set_title(scname + ' Groundtracks')
+ax.set_xlabel('Longitude (°W)', fontsize=20)
+ax.set_ylabel('Latitude (°N)', fontsize=20)
+ax.set_title(scname + ' Groundtracks', fontsize=25, pad=15)
 ax.set_yticks([-90, -60, -30, 0, 30, 60, 90], minor = False)
 ax.set_yticks([-75, -45, -15, 15, 45, 75], minor = True)
 ax.set_xticks([0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330, 360], minor = False)
 ax.set_xticks([15, 45, 75, 105, 135, 165, 195, 225, 255, 285, 315, 345], minor = True)
+ax.tick_params(axis='x', labelsize=15)
+ax.tick_params(axis='y', labelsize=15)
 
-#create color bar for phase angle
-mappable = ax.collections[0]
-cbar = plt.colorbar(mappable=mappable, shrink=0.75)
-cbar.set_label('Phase Angle', labelpad=+2)
+#create color bar
+if plotType == 'Phase':
+	mappable = ax.collections[0]
+	cbar = plt.colorbar(mappable=mappable, shrink=0.75)
+	cbar.set_label('Phase Angle', labelpad=+3, fontsize=15)
+	cbar.ax.tick_params(labelsize=15)
+elif plotType == 'Altitude':
+	mappable = ax.collections[0]
+	cbar = plt.colorbar(mappable=mappable, shrink=0.75)
+	cbar.update_ticks()
+	cbar.set_label('Altitude (km)', labelpad=+3, fontsize=15)
+	cbar.ax.tick_params(labelsize=15)
 
 # creates grid
 # ax.grid(True)
+
+# plt.savefig('ground_track_output.svg',dpi=150, format='svg')
 
 # shows plot
 plt.show()
