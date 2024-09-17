@@ -717,7 +717,7 @@ for file in inputFiles:
 			toCSV = fileBase + '_lband_altitude.csv'
 			isis.isis2ascii(from_=fromCube, to_=toCSV, header_="no", delimiter_=",", setpixelvalues="yes", nullvalue_=-1024, hrsvalue_=1)
 			os.system(str("mv " + toCSV + ".txt " + toCSV))
-			fromCube = str(lbandCub + "+5")
+			fromCube = str(lbandCub + "+7")
 			toCSV = fileBase + '_lband_emission.csv'
 			isis.isis2ascii(from_=fromCube, to_=toCSV, header_="no", delimiter_=",", setpixelvalues="yes", nullvalue_=-1024, hrsvalue_=1)
 			os.system(str("mv " + toCSV + ".txt " + toCSV))
@@ -725,10 +725,15 @@ for file in inputFiles:
 			toCSV = fileBase + '_lband_incidence.csv'
 			isis.isis2ascii(from_=fromCube, to_=toCSV, header_="no", delimiter_=",", setpixelvalues="yes", nullvalue_=-1024, hrsvalue_=1)
 			os.system(str("mv " + toCSV + ".txt " + toCSV))
-			fromCube = str(lbandCub + "+7")
+			fromCube = str(lbandCub + "+5")
 			toCSV = fileBase + '_lband_phase.csv'
 			isis.isis2ascii(from_=fromCube, to_=toCSV, header_="no", delimiter_=",", setpixelvalues="yes", nullvalue_=-1024, hrsvalue_=1)
 			os.system(str("mv " + toCSV + ".txt " + toCSV))
+			emacube = str(lbandCub + "+7")
+			imgcube = str(lbandCub + "+1")
+			altcube = str(lbandCub + "+4")
+			tocube = fileBase + '_lband_specrad.cub'
+			isis.fx(f1_=imgcube, f2_=altcube, f3_=emacube, to_=tocube, equation_="f1 / 0.29 * 3.14159 * (f2 * 0.237767) ^ 2 / cos(rads(f3)) / 1000000000")
 			
 			# now make mband csv files
 			fromCube = str(mbandCub + "+2")
@@ -743,7 +748,7 @@ for file in inputFiles:
 			toCSV = fileBase + '_mband_altitude.csv'
 			isis.isis2ascii(from_=fromCube, to_=toCSV, header_="no", delimiter_=",", setpixelvalues="yes", nullvalue_=-1024, hrsvalue_=1)
 			os.system(str("mv " + toCSV + ".txt " + toCSV))
-			fromCube = str(mbandCub + "+5")
+			fromCube = str(mbandCub + "+7")
 			toCSV = fileBase + '_mband_emission.csv'
 			isis.isis2ascii(from_=fromCube, to_=toCSV, header_="no", delimiter_=",", setpixelvalues="yes", nullvalue_=-1024, hrsvalue_=1)
 			os.system(str("mv " + toCSV + ".txt " + toCSV))
@@ -751,10 +756,16 @@ for file in inputFiles:
 			toCSV = fileBase + '_mband_incidence.csv'
 			isis.isis2ascii(from_=fromCube, to_=toCSV, header_="no", delimiter_=",", setpixelvalues="yes", nullvalue_=-1024, hrsvalue_=1)
 			os.system(str("mv " + toCSV + ".txt " + toCSV))
-			fromCube = str(mbandCub + "+7")
+			fromCube = str(mbandCub + "+5")
 			toCSV = fileBase + '_mband_phase.csv'
 			isis.isis2ascii(from_=fromCube, to_=toCSV, header_="no", delimiter_=",", setpixelvalues="yes", nullvalue_=-1024, hrsvalue_=1)
 			os.system(str("mv " + toCSV + ".txt " + toCSV))
+			
+			emacube = str(mbandCub + "+7")
+			imgcube = str(mbandCub + "+1")
+			altcube = str(mbandCub + "+4")
+			tocube = fileBase + '_mband_specrad.cub'
+			isis.fx(f1_=imgcube, f2_=altcube, f3_=emacube, to_=tocube, equation_="f1 / 0.4975 * 3.14159 * (f2 * 0.237767) ^ 2 / cos(rads(f3)) / 1000000000")
 			
 			# remove the now extraneous csv files
 			os.system(str('/bin/rm ' + fileBase + '_latitude.csv'))
