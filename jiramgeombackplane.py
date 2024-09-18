@@ -729,11 +729,15 @@ for file in inputFiles:
 			toCSV = fileBase + '_lband_phase.csv'
 			isis.isis2ascii(from_=fromCube, to_=toCSV, header_="no", delimiter_=",", setpixelvalues="yes", nullvalue_=-1024, hrsvalue_=1)
 			os.system(str("mv " + toCSV + ".txt " + toCSV))
+			
+			#generate spectral radiance cube
 			emacube = str(lbandCub + "+7")
 			imgcube = str(lbandCub + "+1")
 			altcube = str(lbandCub + "+4")
-			tocube = fileBase + '_lband_specrad.cub'
-			isis.fx(f1_=imgcube, f2_=altcube, f3_=emacube, to_=tocube, equation_="f1 / 0.29 * 3.14159 * (f2 * 0.237767) ^ 2 / cos(rads(f3)) / 1000000000")
+			speccub = fileBase + '_lband_specrad.cub'
+			speccsv = fileBase + '_lband_specrad.csv'
+			isis.fx(f1_=imgcube, f2_=altcube, f3_=emacube, to_=speccub, equation_="f1 / 0.29 * 3.14159 * (f2 * 0.237767) ^ 2 / cos(rads(f3)) / 1000000000")
+			isis.isis2ascii(from_=speccub, to_=speccsv, header_="no", delimiter_=",", setpixelvalues="yes", nullvalue_=-1024, hrsvalue_=1)
 			
 			# now make mband csv files
 			fromCube = str(mbandCub + "+2")
@@ -761,11 +765,14 @@ for file in inputFiles:
 			isis.isis2ascii(from_=fromCube, to_=toCSV, header_="no", delimiter_=",", setpixelvalues="yes", nullvalue_=-1024, hrsvalue_=1)
 			os.system(str("mv " + toCSV + ".txt " + toCSV))
 			
+			#generate spectral radiance cube
 			emacube = str(mbandCub + "+7")
 			imgcube = str(mbandCub + "+1")
 			altcube = str(mbandCub + "+4")
-			tocube = fileBase + '_mband_specrad.cub'
-			isis.fx(f1_=imgcube, f2_=altcube, f3_=emacube, to_=tocube, equation_="f1 / 0.4975 * 3.14159 * (f2 * 0.237767) ^ 2 / cos(rads(f3)) / 1000000000")
+			speccub = fileBase + '_mband_specrad.cub'
+			speccsv = fileBase + '_mband_specrad.csv'
+			isis.fx(f1_=imgcube, f2_=altcube, f3_=emacube, to_=speccub, equation_="f1 / 0.4975 * pi * (f2 * 0.237767) ^ 2 / cos(rads(f3)) / 1000000000")
+			isis.isis2ascii(from_=speccub, to_=speccsv, header_="no", delimiter_=",", setpixelvalues="yes", nullvalue_=-1024, hrsvalue_=1)
 			
 			# remove the now extraneous csv files
 			os.system(str('/bin/rm ' + fileBase + '_latitude.csv'))
@@ -788,6 +795,16 @@ for file in inputFiles:
 			os.system(str("mv " + fileBase + "_emission.csv " + fileBase + "_mband_emission.csv"))
 			os.system(str("mv " + fileBase + "_incidence.csv " + fileBase + "_mband_incidence.csv"))
 			os.system(str("mv " + fileBase + "_phase.csv " + fileBase + "_mband_phase.csv"))
+			
+			#generate spectral radiance cube
+			emacube = str(mbandCub + "+7")
+			imgcube = str(mbandCub + "+1")
+			altcube = str(mbandCub + "+4")
+			speccub = fileBase + '_mband_specrad.cub'
+			speccsv = fileBase + '_mband_specrad.csv'
+			isis.fx(f1_=imgcube, f2_=altcube, f3_=emacube, to_=speccub, equation_="f1 / 0.4975 * pi * (f2 * 0.237767) ^ 2 / cos(rads(f3)) / 1000000000")
+			isis.isis2ascii(from_=speccub, to_=speccsv, header_="no", delimiter_=",", setpixelvalues="yes", nullvalue_=-1024, hrsvalue_=1)
+			
 		elif instrumentMode == "I3" and dataType == 'IMAGE' and splitimages:
 			lbandCub = fileBase + '_lband.mirror.cub'
 			imageCSV = fileBase + '_lband.csv'
@@ -802,6 +819,15 @@ for file in inputFiles:
 			os.system(str("mv " + fileBase + "_emission.csv " + fileBase + "_lband_emission.csv"))
 			os.system(str("mv " + fileBase + "_incidence.csv " + fileBase + "_lband_incidence.csv"))
 			os.system(str("mv " + fileBase + "_phase.csv " + fileBase + "_lband_phase.csv"))
+			
+			#generate spectral radiance cube
+			emacube = str(lbandCub + "+7")
+			imgcube = str(lbandCub + "+1")
+			altcube = str(lbandCub + "+4")
+			speccub = fileBase + '_lband_specrad.cub'
+			speccsv = fileBase + '_lband_specrad.csv'
+			isis.fx(f1_=imgcube, f2_=altcube, f3_=emacube, to_=speccub, equation_="f1 / 0.29 * 3.14159 * (f2 * 0.237767) ^ 2 / cos(rads(f3)) / 1000000000")
+			isis.isis2ascii(from_=speccub, to_=speccsv, header_="no", delimiter_=",", setpixelvalues="yes", nullvalue_=-1024, hrsvalue_=1)
 		
 		# clean up extraneous cube files
 		os.system(str("/bin/rm " + latitudeCube))
