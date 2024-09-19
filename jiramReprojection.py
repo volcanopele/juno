@@ -104,6 +104,8 @@ mbandfrm = -61412
 mbndnm = 'JUNO_JIRAM_I_MBAND'
 specfrm = -61420
 specnm = 'JUNO_JIRAM_S'
+cal_flat_b = '/Users/perry/Documents/scripts/juno/calibration/flat_1ms_bright.cub'
+cal_flat_d = '/Users/perry/Documents/scripts/juno/calibration/flat_1ms_dark.cub'
 
 # various parameters for the script
 method = 'Intercept/Ellipsoid'
@@ -214,9 +216,10 @@ bandlimitation = "all"
 saturation = "no"
 spectral = False
 bkgSubtract = False
+flatfield = False
 
 try:
-	opts, args = getopt.getopt(argv, 'i:m:x:y:z:b:s:spec:subtract:', ['mapfile', 'infile'])
+	opts, args = getopt.getopt(argv, 'i:m:x:y:z:b:s:spec:subtract:flat:', ['mapfile', 'infile'])
 	for opt, arg in opts:
 		if opt in ("-m", "--mapfile"):
 			mapfile = arg
@@ -236,6 +239,8 @@ try:
 			spectral = True
 		if opt in ("-subtract"):
 			bkgSubtract = True
+		if opt in ("-flat"):
+			flatfield = True
 			
 except getopt.GetoptError:
 	print('jiramReprojection.py -m <mapfile> -i <infile>')
@@ -389,6 +394,22 @@ else:
 isis.raw2isis(from_=imageImg, to_=imageCub, samples_=432, lines_=imgLines, bands_=1, bittype_="REAL")
 
 isis.mirror(from_=imageCub, to_=mirrorCub)
+
+print(exposureTime)
+if flatfield:
+	print("Correcting flat field")
+	nullCub = fileBase + '.null.cub'
+	darkCub = fileBase + '.dark.cub'
+	brightCub = fileBase + '.bright.cub'
+	isis.specpix(from_=mirrorCub, to_=nullCub, nullmin_=-1024, nullmax_=0.0000005)
+	isis.fx(f1_=nullCub, f2_=cal_flat_d, to_=darkCub, equation_="f1 * (f2 / (1.2215 * f1 ^ 0.0795))")
+	isis.fx(f1_=nullCub, f2_=cal_flat_b, to_=brightCub, equation_="f1 * (f2 / (0.7408 * f1 ^ (-0.072)))")
+	isis.handmos(from_=darkCub, mosaic_=mirrorCub)
+	isis.handmos(from_=brightCub, mosaic_=mirrorCub)
+	os.system(str("/bin/rm " + nullCub))
+	os.system(str("/bin/rm " + darkCub))
+	os.system(str("/bin/rm " + brightCub))
+
 
 if instrumentMode == "I1":
 	isis.crop(from_=mirrorCub, to_=lbandCub, line_=1, nlines_=128)
