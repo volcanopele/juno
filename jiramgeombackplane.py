@@ -98,6 +98,8 @@ mbandfrm = -61412
 mbndnm = 'JUNO_JIRAM_I_MBAND'
 specfrm = -61420
 specnm = 'JUNO_JIRAM_S'
+cal_flat_b = '/Users/perry/Documents/scripts/juno/calibration/flat_1ms_bright.cub'
+cal_flat_d = '/Users/perry/Documents/scripts/juno/calibration/flat_1ms_dark.cub'
 
 # various parameters for the script
 method = 'Intercept/Ellipsoid'
@@ -448,13 +450,16 @@ def backplanecubegen(backplane, bpName):
 splitimages = False
 offsetCSV = False
 spectral = False
+flatfield = False
 for i in sys.argv:
 	if i == '-split':
 		splitimages = True
 	elif i == '-offset':
 		offsetCSV = True
 	elif i == '-spec':
-		spectral = True	
+		spectral = True
+	elif i == '-flat':
+		flatfield = True
 
 ####################
 ### SCRIPT START ###
@@ -614,7 +619,23 @@ for file in inputFiles:
 			isis.mirror(from_=imageCub, to_=mirrorCub)
 		else:
 			mirrorCub = imageCub
-	
+		
+		# low exposure times images have readout noise than be removed
+		# This applies reciprocal corrections to bright and dark columns before mosaicking them back onto the mirrored image
+		# requires the -flat to be used
+		if flatfield:
+			nullCub = fileBase + '.null.cub'
+			darkCub = fileBase + '.dark.cub'
+			brightCub = fileBase + '.bright.cub'
+			isis.specpix(from_=mirrorCub, to_=nullCub, nullmin_=-1024, nullmax_=0.0000005)
+			isis.fx(f1_=nullCub, f2_=cal_flat_d, to_=darkCub, equation_="f1 * (f2 / (1.3065 * f1 ^ 0.086))")
+			isis.fx(f1_=nullCub, f2_=cal_flat_b, to_=brightCub, equation_="f1 * (f2 / (0.7673 * f1 ^ (-0.086)))")
+			isis.handmos(from_=darkCub, mosaic_=mirrorCub)
+			isis.handmos(from_=brightCub, mosaic_=mirrorCub)
+			os.system(str("/bin/rm " + nullCub))
+			os.system(str("/bin/rm " + darkCub))
+			os.system(str("/bin/rm " + brightCub))
+		
 		# add labels to the image file
 		isis.editlab(from_=mirrorCub, opt_="addg", grpname_="Instrument")
 		isis.editlab(from_=mirrorCub, option="addkey", grpname="Instrument", keyword="SpacecraftName", value=scname)

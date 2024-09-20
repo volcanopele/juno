@@ -402,8 +402,8 @@ if flatfield:
 	darkCub = fileBase + '.dark.cub'
 	brightCub = fileBase + '.bright.cub'
 	isis.specpix(from_=mirrorCub, to_=nullCub, nullmin_=-1024, nullmax_=0.0000005)
-	isis.fx(f1_=nullCub, f2_=cal_flat_d, to_=darkCub, equation_="f1 * (f2 / (1.2215 * f1 ^ 0.0795))")
-	isis.fx(f1_=nullCub, f2_=cal_flat_b, to_=brightCub, equation_="f1 * (f2 / (0.7408 * f1 ^ (-0.072)))")
+	isis.fx(f1_=nullCub, f2_=cal_flat_d, to_=darkCub, equation_="f1 * (f2 / (1.3065 * f1 ^ 0.086))")
+	isis.fx(f1_=nullCub, f2_=cal_flat_b, to_=brightCub, equation_="f1 * (f2 / (0.7673 * f1 ^ (-0.086)))")
 	isis.handmos(from_=darkCub, mosaic_=mirrorCub)
 	isis.handmos(from_=brightCub, mosaic_=mirrorCub)
 	os.system(str("/bin/rm " + nullCub))
