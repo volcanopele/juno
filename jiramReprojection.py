@@ -168,12 +168,16 @@ def fileParse(inputs):
 			instrumentMode = instrumentModes[0]
 			instrumentModes = instrumentMode.split("_")
 			instrumentMode = instrumentModes[1]
+		elif 'EXPOSURE_DURATION' in line:
+			exposureTime = line
+			exposureTimes = exposureTime.split(" ")
+			exposureTimes = sorted(exposureTimes, reverse=True)
+			exposureTime = float(exposureTimes[3])
 	# start and stop time converted to seconds past J2000
 	etStart = spiceypy.scs2e(-61999,startTime)
 	etStop = spiceypy.scs2e(-61999,stopTime)
 	# Image mid-time calculated
 	et = (etStart+etStop)/2
-	exposureTime = etStop - etStart
 	
 	# close file
 	file.close()
@@ -279,7 +283,7 @@ instrumentMode = parseTuple[6]
 orbit = int(parseTuple[2])
 if orbit >= 51:
 	etStart = etStart - 0.62
-exposureTime = parseTuple[4]
+exposureTime = float(parseTuple[4])
 saturationLevel = 0.0073 / exposureTime
 safeLevel = saturationLevel * 0.006 / 0.0073
 
@@ -320,6 +324,8 @@ else:
 		magnify = 2
 	elif orbit == 55:
 		magnify = 2
+	elif orbit == 57 or orbit == 58:
+		magnify = 1
 	else:
 		magnify = 10
 	res /= magnify
@@ -395,15 +401,21 @@ isis.raw2isis(from_=imageImg, to_=imageCub, samples_=432, lines_=imgLines, bands
 
 isis.mirror(from_=imageCub, to_=mirrorCub)
 
-print(exposureTime)
+# low exposure times images have readout noise than be removed
+# This applies reciprocal corrections to bright and dark columns before mosaicking them back onto the mirrored image
+# requires the -flat to be used
 if flatfield:
 	print("Correcting flat field")
 	nullCub = fileBase + '.null.cub'
 	darkCub = fileBase + '.dark.cub'
 	brightCub = fileBase + '.bright.cub'
 	isis.specpix(from_=mirrorCub, to_=nullCub, nullmin_=-1024, nullmax_=0.0000005)
-	isis.fx(f1_=nullCub, f2_=cal_flat_d, to_=darkCub, equation_="f1 * (f2 / (1.3065 * f1 ^ 0.086))")
-	isis.fx(f1_=nullCub, f2_=cal_flat_b, to_=brightCub, equation_="f1 * (f2 / (0.7673 * f1 ^ (-0.086)))")
+	if exposureTime == 0.001:
+		isis.fx(f1_=nullCub, f2_=cal_flat_d, to_=darkCub, equation_="f1 * 1.018 * f1 ^ (-0.08) * f2 / f2")
+		isis.fx(f1_=nullCub, f2_=cal_flat_b, to_=brightCub, equation_="f1 * 0.9686 * f1 ^ (0.0891) * f2 / f2")
+	elif exposureTime == 0.002:
+		isis.fx(f1_=nullCub, f2_=cal_flat_d, to_=darkCub, equation_="f1 * 1.01 * f1 ^ (-0.04) * f2 / f2")
+		isis.fx(f1_=nullCub, f2_=cal_flat_b, to_=brightCub, equation_="f1 * 0.99 * f1 ^ (0.04455) * f2 / f2")
 	isis.handmos(from_=darkCub, mosaic_=mirrorCub)
 	isis.handmos(from_=brightCub, mosaic_=mirrorCub)
 	os.system(str("/bin/rm " + nullCub))
