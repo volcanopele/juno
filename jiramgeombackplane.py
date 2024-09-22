@@ -632,11 +632,25 @@ for file in inputFiles:
 			nullCub = fileBase + '.null.cub'
 			darkCub = fileBase + '.dark.cub'
 			brightCub = fileBase + '.bright.cub'
-			isis.specpix(from_=mirrorCub, to_=nullCub, nullmin_=-1024, nullmax_=0.0000005)
+			addedCub = fileBase + '.added.cub'
+			dark2Cub = fileBase + '.dark2.cub'
+			bright2Cub = fileBase + '.bright2.cub'
 			if exposureTime == 0.001:
+				isis.specpix(from_=mirrorCub, to_=nullCub, nullmin_=-1024, nullmax_=0.0000005)
 				isis.fx(f1_=nullCub, f2_=cal_flat_d, to_=darkCub, equation_="f1 * 1.018 * f1 ^ (-0.08) * f2 / f2")
 				isis.fx(f1_=nullCub, f2_=cal_flat_b, to_=brightCub, equation_="f1 * 0.9686 * f1 ^ (0.0891) * f2 / f2")
+			elif exposureTime == 0.002 and orbit == 58:
+				isis.fx(f1_=mirrorCub, to_=addedCub, equation_="f1 + 0.005")
+				isis.specpix(from_=addedCub, to_=nullCub, nullmin_=-1024, nullmax_=0.0000005)
+				isis.fx(f1_=nullCub, f2_=cal_flat_d, to_=dark2Cub, equation_="f1 * 0.98 * f1 ^ (-0.087) * f2 / f2")
+				isis.fx(f1_=nullCub, f2_=cal_flat_b, to_=bright2Cub, equation_="f1 * 0.98 * f1 ^ (0.087) * f2 / f2")
+				isis.fx(f1_=dark2Cub, to_=darkCub, equation_="f1 - 0.005")
+				isis.fx(f1_=bright2Cub, to_=brightCub, equation_="f1 - 0.005")
+				os.system(str("/bin/rm " + addedCub))
+				os.system(str("/bin/rm " + dark2Cub))
+				os.system(str("/bin/rm " + bright2Cub))
 			elif exposureTime == 0.002:
+				isis.specpix(from_=mirrorCub, to_=nullCub, nullmin_=-1024, nullmax_=0.0000005)
 				isis.fx(f1_=nullCub, f2_=cal_flat_d, to_=darkCub, equation_="f1 * 1.01 * f1 ^ (-0.04) * f2 / f2")
 				isis.fx(f1_=nullCub, f2_=cal_flat_b, to_=brightCub, equation_="f1 * 0.99 * f1 ^ (0.04455) * f2 / f2")
 			isis.handmos(from_=darkCub, mosaic_=mirrorCub)
