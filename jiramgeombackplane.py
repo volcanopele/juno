@@ -128,6 +128,7 @@ def fileParse(inputs):
 	# split it by spaces then sorts the resulting array so that the value we need 
 	# is at a consistent position.
 	instrumentMode = ""
+	exposureTime = ""
 	
 	for line in datafile:
 		if 'SPACECRAFT_CLOCK_START_COUNT' in line:
@@ -201,7 +202,8 @@ def fileParse(inputs):
 	etStop = spiceypy.scs2e(-61999,stopTime)
 	# Image mid-time calculated
 	et = (etStart+etStop)/2
-	# exposureTime = etStop - etStart
+	if exposureTime == "":
+		exposureTime = etStop - etStart
 	
 	# close file
 	file.close()

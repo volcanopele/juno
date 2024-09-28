@@ -89,6 +89,7 @@ basemp = '/Users/perry/Dropbox/Io/map/Io_GalileoSSI-Voyager_Global_Mosaic_1km.cu
 # basemp = '/Users/perry/Dropbox/Io/Galileo/E14/controlled/14ISPOLAR_01.photom.cub+1'
 # basemp = '/Users/perry/Dropbox/Io/Juno/PJ57/JunoCam/JNCE_2023364_57C00025_V01/JNCE_2023364_57C00025_V01_GREEN.photom.cub+1'
 # basemp = '/Users/perry/Dropbox/Io/Juno/PJ55/JunoCam/map/Feb2023update/PJ55_JNC.simp.cub+1'
+# basemp = '/Users/perry/Dropbox/Io/Juno/PJ58/JunoCam/JNCE_2024034_58C00025_V01/JNCE_2024034_58C00025_V01.simp.cub+1'
 basemp = '/Users/perry/Dropbox/Io/Juno/JunoCam_maps/New_Io_photomosaic_2km_grey.cub+1'
 sclkid = -61
 scname = 'JUNO'
