@@ -98,6 +98,217 @@ xlsxmt = 'MM/DD/YYYY HR:MN:SC.###'
 datefmt = 'YYYY-MM-DD'
 timefmt = 'HR:MN:SC.###'
 
+###########################
+### INITALIZE FUNCTIONS ###
+###########################
+# fileParse takes an input JIRAM label file and pulls out pieces of information 
+# that will be used by the script, outputting as a tuple the image mid-time, 
+# product ID, and orbit number
+
+def fileParse(inputs):
+	# opens input file
+	file = open(inputs)
+	# converts input file into an array of lines
+	datafile = file.readlines()
+	# this for loop takes a look at each line in datafile and looks for four lines
+	# with information needed for this script including the image start time, stop 
+	# time, product ID, and orbit number. If found, the loop will parse the line by
+	# split it by spaces then sorts the resulting array so that the value we need 
+	# is at a consistent position.
+	instrumentMode = ""
+	exposureTime = ""
+	targetName = ""
+	
+	for line in datafile:
+		if 'SPACECRAFT_CLOCK_START_COUNT' in line:
+			startTime = line
+			startTimes = startTime.split(" ")
+			startTimes = sorted(startTimes, reverse=True)
+			startTime = startTimes[2]
+			startTime = startTime.split('"')[1]
+			startTime = startTime.split('/')[1]
+		elif 'SPACECRAFT_CLOCK_STOP_COUNT' in line:
+			stopTime = line
+			stopTimes = stopTime.split(" ")
+			stopTimes = sorted(stopTimes, reverse=True)
+			stopTime = stopTimes[2]
+			stopTime = stopTime.split('"')[1]
+			stopTime = stopTime.split('/')[1]
+		elif 'PRODUCT_CREATION_TIME' in line:
+			productCreate = line
+			productCreates = productCreate.split(" ")
+			productCreates = sorted(productCreates, reverse=True)
+			productCreate = productCreates[2]
+		elif 'TARGET_NAME' in line:
+			targetName = line
+			targetNames = targetName.split(" ")
+			targetNames = sorted(targetNames, reverse=True)
+			targetName = targetNames[2]
+			targetName = targetName.split('"')
+			targetName = targetName[1]
+		elif 'STANDARD_DATA_PRODUCT_ID' in line:
+			dataType = line
+			dataTypes = dataType.split(" ")
+			dataTypes = sorted(dataTypes, reverse=True)
+			dataType = dataTypes[2]
+			dataType = dataType.split('"')[1]
+		elif 'PRODUCT_ID ' in line:
+			if line.startswith('PRODUCT_ID ', 0):
+				productID = line
+				productIDs = productID.split(" ")
+				productIDs = sorted(productIDs, reverse=True)
+				productID = productIDs[2]
+				productID = productID.split('"')
+				productID = productID[1]
+		elif 'ORBIT_NUMBER' in line:
+			orbit = line
+			orbits = orbit.split(" ")
+			orbits = sorted(orbits, reverse=True)
+			orbit = orbits[2]
+		elif 'EXPOSURE_DURATION' in line:
+			exposureTime = line
+			exposureTimes = exposureTime.split(" ")
+			exposureTimes = sorted(exposureTimes, reverse=True)
+			exposureTime = float(exposureTimes[3])
+
+	
+	# start and stop time converted to seconds past J2000
+	etStart = spiceypy.scs2e(-61999,startTime)
+	etStop = spiceypy.scs2e(-61999,stopTime)
+	# Image mid-time calculated
+	et = (etStart+etStop)/2
+	if exposureTime == "":
+		exposureTime = etStop - etStart
+	
+	# close file
+	file.close()
+	
+	# tuple with image mid-time, product ID, and orbit output by function
+	return [et, productID, orbit, etStart, exposureTime, startTime, productCreate, dataType, targetName]
+	
+# backplanegen is used on JUNO_JIRAM_I data and generates CSV files containing
+# geometric and illumination information for each pixel. The files generated are: 
+# latitude, longitude, altitude (distance to the intercept point), incidence 
+# angle, phase angle, and emission angle
+
+def backplanegen(frmcode, Xoffset, Yoffset, trgepc):
+	[shape, frame, bsight, nbounds, bounds] = spiceypy.getfov(frmcode, 20)
+	
+	# calculation of the IFOV
+	dx = 0.000551562
+	dy = 0.000551562
+	
+	# pos x for the SRU is to the top of the frame
+	# pos y is to the left of the frame
+	# so X is lines (i) and should get more negative with each line
+	# Y is samples (j) and should get more negative with each pixel
+		
+	# generate numpy arrays of radian pixel locations for both the X and Y directions
+	xp = bounds[3,1] + Xoffset - np.arange(0.5,511.51,1)*dx
+	yp = bounds[3,2] + Yoffset - np.arange(0.5,511.51,1)*dy
+	zp = bounds[3,0]
+	#start [0.98081485  0.13784454  0.13784454]
+	
+	for i in range(0,512):
+		# initialize each line so as to clear the previous line
+		latitudeLine = ""
+		longitudeLine = ""
+		altitudeLine = ""
+		emissionLine = ""
+		phaseLine = ""
+		incidenceLine = ""
+		for j in range(0,512):
+			# defining variables
+			line = j
+			sample = i
+			lineRadians = xp[j]
+			sampleRadians = yp[i]
+			
+			# applying geometric correction
+			
+			
+			# vector for pixel in radians
+			dvec=[zp,xp[j],yp[i]]
+			# ensures the script won't break on pixels that don't intersect Io
+			with spiceypy.no_found_check():
+				[spoint, trgepc, srfvec, found] = spiceypy.sincpt(method2, target, etStart, tarfrm, abcorr, scname, frame, dvec)
+				if found:
+					[lon, lat, alti] = spiceypy.recpgr(target, spoint, radii[0], (radii[0]-radii[2])/radii[0])
+					lon = lon * spiceypy.dpr()
+					lat = lat * spiceypy.dpr()
+					alt = spiceypy.vnorm( srfvec )
+					[trgepc, srfvec, phase, solar, emissn] = spiceypy.ilumin(method2, target, etStart, tarfrm, abcorr, scname, spoint)
+					inc = solar * spiceypy.dpr()
+					ema = emissn * spiceypy.dpr()
+					pha = phase * spiceypy.dpr()
+				# if pixel doesn't intersect Io, a default value of -1024.0 is used
+				else:
+					lon = -1024.0
+					lat = -1024.0
+					alt = -1024.0
+					inc = -1024.0
+					ema = -1024.0
+					pha = -1024.0
+			# a very verbose method of generating a CSV file, but the numpy savetxt method had 
+			# issues with merging two of them
+			if latitudeLine == "":
+				latitudeLine = str(lat)
+				longitudeLine = str(lon)
+				altitudeLine = str(alt)
+				emissionLine = str(ema)
+				phaseLine = str(pha)
+				incidenceLine = str(inc)
+			else:
+				latitudeLine = latitudeLine + "," + str(lat)
+				longitudeLine = longitudeLine + "," + str(lon)
+				altitudeLine = altitudeLine + "," + str(alt)
+				emissionLine = emissionLine + "," + str(ema)
+				phaseLine = phaseLine + "," + str(pha)
+				incidenceLine = incidenceLine + "," + str(inc)
+		
+		print(latitudeLine, file = latitudeFile)
+		print(longitudeLine, file = longitudeFile)
+		print(altitudeLine, file = altitudeFile)
+		print(emissionLine, file = emissionFile)
+		print(phaseLine, file = phaseFile)
+		print(incidenceLine, file = incidenceFile)
+
+###########################
+### COMMAND LINE PARSER ###
+###########################
+
+
+mapfile = ''
+outputfile = ''
+jiramInput = ''
+rotation = ''
+offsetX = 0
+offsetY = 0
+argv = sys.argv[1:]
+bandlimitation = "all"
+saturation = "no"
+spectral = False
+bkgSubtract = False
+flatfield = False
+
+try:
+	opts, args = getopt.getopt(argv, 'i:m:x:y:z:', ['mapfile', 'infile'])
+	for opt, arg in opts:
+		if opt in ("-m", "--mapfile"):
+			mapfile = arg
+		if opt in ("-i", "--infile"):
+			jiramInput = arg
+		if opt in ("-x"):
+			offsetX = float(arg)
+		if opt in ("-y"):
+			offsetY = float(arg)
+		if opt in ("-z"):
+			rotation = float(arg)
+			
+except getopt.GetoptError:
+	print('srugeombackplane.py -m <mapfile> -i <infile>')
+	sys.exit(2)
+
 ####################
 ### SCRIPT START ###
 ####################
@@ -107,30 +318,47 @@ spiceypy.furnsh( metakr )
 
 # open file dialog. Select one or more label files as input.
 
-inputFile = fd.askopenfilename(title='Select Image', filetypes=(('ISIS cubes', '*.cub'), ('All files', '*.*')))
-numFiles = len(inputFile)
-utctim = input( 'Input UTC Observation Time: ' )
+file = fd.askopenfilename(title='Select Labels', filetypes=(('PDS Labels', '*.LBL'), ('All files', '*.*')))
+numFiles = len(file)
 
 if numFiles == 0:
 	sys.exit()
 
+parseTuple = fileParse(file)
+et = parseTuple[0]
+timstr = spiceypy.timout( et, xlsxmt )
+etStart = float(parseTuple[3])
+exposureTime = float(parseTuple[4])
+sclkStart = parseTuple[5]
+productID = parseTuple[1]
+orbit = int(parseTuple[2])
+productCreate = parseTuple[6]
+dataType = parseTuple[7]
+target = parseTuple[8]
 
-et = spiceypy.str2et( utctim )
+if target == "IO":
+	tarfrm = 'IAU_IO'
+elif target == "EUROPA":
+	tarfrm = 'IAU_EUROPA'
+elif target == "GANYMEDE":
+	tarfrm = 'IAU_GANYMEDE'
+else:
+	target = 'IO'
+	tarfrm = 'IAU_IO'
 
-	
 # setup output files
 # first generate the file names for each parameter CSV file
-root = os.path.dirname(inputFile)
-name = os.path.basename(inputFile)
-productID = os.path.basename(inputFile).split('.')[0]
+root = os.path.dirname(file)
+name = os.path.basename(file)
 fileBase = root + '/' + productID
-fileName = fileBase + '.cub'
 latitudeFile = fileBase + '_latitude.csv'
 longitudeFile = fileBase + '_longitude.csv'
 altitudeFile = fileBase + '_altitude.csv'
 emissionFile = fileBase + '_emission.csv'
 incidenceFile = fileBase + '_incidence.csv'
 phaseFile = fileBase + '_phase.csv'
+fitsFile = fileBase + '.FIT'
+imageFile = fileBase + '.cub'
 
 # open each CSV file
 latitudeFile = open( latitudeFile, 'w' )
@@ -142,83 +370,19 @@ phaseFile = open( phaseFile, 'w' )
 	
 # get radii of Io from spice
 [num, radii] = spiceypy.bodvrd(target, 'RADII', 3)
-	
+
 # obtain cartesian coordinates for sub-spacecraft point at the time of closest approach
 [spoint, trgepc, subsrfvec] = spiceypy.subpnt( method, target, et, tarfrm, abcorr, scname )
 
-[shape, frame, bsight, nbounds, bounds] = spiceypy.getfov(srufrm, 20)
+# IFOV from the IK
+# for now using this, but I can commment this out
+dx = 0.000551562
+dy = 0.000551562
 
-#possible source of error
-dy = np.abs((bounds[0,2]-bounds[1,2]) / 512)
-dx = np.abs((bounds[0,1]-bounds[3,1]) / 512)
+offsetY *= dy
+offsetX *= dx
 
-# generate numpy arrays of radian pixel locations for both the X and Y directions
-xp = np.arange(0.5,511.51,1)*dx + bounds[1,1]
-yp = bounds[3,2] - np.arange(0.5,511.51,1)*dy
-zp = bounds[0,0]
-
-# get center lat and lon
-# print(bsight)
-# dvec = [bsight[1],bsight[2],bsight[0]]
-# [spoint, trgepc, srfvec, found] = spiceypy.sincpt(method2, target, et, tarfrm, abcorr, scname, frame, dvec)
-# print(lon * spiceypy.dpr())
-# print(lat * spiceypy.dpr())
-
-for i in range(0,512):
-	# initialize each line so as to clear the previous line
-	latitudeLine = ""
-	longitudeLine = ""
-	altitudeLine = ""
-	emissionLine = ""
-	phaseLine = ""
-	incidenceLine = ""
-	for j in range(0,512):
-		# vector for pixel in radians
-		dvec=[zp,xp[i],yp[j]]
-		# print(dvec)
-		# ensures the script won't break on pixels that don't intersect Io
-		with spiceypy.no_found_check():
-			[spoint, trgepc, srfvec, found] = spiceypy.sincpt(method2, target, et, tarfrm, abcorr, scname, frame, dvec)
-			if found:
-				[lon, lat, alti] = spiceypy.recpgr(target, spoint, radii[0], (radii[0]-radii[2])/radii[0])
-				lon = lon * spiceypy.dpr()
-				lat = lat * spiceypy.dpr()
-				alt = spiceypy.vnorm( srfvec )
-				[trgepc, srfvec, phase, solar, emissn] = spiceypy.ilumin(method2, target, et, tarfrm, abcorr, scname, spoint)
-				inc = solar * spiceypy.dpr()
-				ema = emissn * spiceypy.dpr()
-				pha = phase * spiceypy.dpr()
-			# if pixel doesn't intersect Io, a default value of -1024.0 is used
-			else:
-				lon = -1024.0
-				lat = -1024.0
-				alt = -1024.0
-				inc = -1024.0
-				ema = -1024.0
-				pha = -1024.0
-		# a very verbose method of generating a CSV file, but the numpy savetxt method had 
-		# issues with merging two of them
-		if latitudeLine == "":
-			latitudeLine = str(lat)
-			longitudeLine = str(lon)
-			altitudeLine = str(alt)
-			emissionLine = str(ema)
-			phaseLine = str(pha)
-			incidenceLine = str(inc)
-		else:
-			latitudeLine = latitudeLine + "," + str(lat)
-			longitudeLine = longitudeLine + "," + str(lon)
-			altitudeLine = altitudeLine + "," + str(alt)
-			emissionLine = emissionLine + "," + str(ema)
-			phaseLine = phaseLine + "," + str(pha)
-			incidenceLine = incidenceLine + "," + str(inc)
-	
-	print(latitudeLine, file = latitudeFile)
-	print(longitudeLine, file = longitudeFile)
-	print(altitudeLine, file = altitudeFile)
-	print(emissionLine, file = emissionFile)
-	print(phaseLine, file = phaseFile)
-	print(incidenceLine, file = incidenceFile)
+backplanegen(srufrm, offsetX, offsetY, trgepc)
 
 latitudeFile.close()
 longitudeFile.close()
@@ -238,7 +402,9 @@ altitudeCube = fileBase + '.' + 'altitude' + '.cub'
 emissionCube = fileBase + '.' + 'emission' + '.cub'
 incidenceCube = fileBase + '.' + 'incidence' + '.cub'
 phaseCube = fileBase + '.' + 'phase' + '.cub'
+trimcub = fileBase + '.' + 'trim' + '.cub'
 
+# csv files
 latitudeFile = fileBase + '_latitude.csv'
 longitudeFile = fileBase + '_longitude.csv'
 altitudeFile = fileBase + '_altitude.csv'
@@ -254,9 +420,12 @@ isis.ascii2isis(from_=incidenceFile, to_=incidenceCube, order_="bsq", samples_=5
 isis.ascii2isis(from_=phaseFile, to_=phaseCube, order_="bsq", samples_=512, lines_=512, bands_=1, skip_=0, setnullrange_="true", nullmin_=-2000, nullmax_=-1000)
 
 # create merged product
-fromlist_path = isis.fromlist.make([fileName, latitudeCube, longitudeCube, altitudeCube, phaseCube, incidenceCube, emissionCube])
+isis.fits2isis(from_=fitsFile, to_=imageFile)
+isis.trim(from_=imageFile, to_=trimcub, top_=1, bottom_=2, left_=2, right_=1)
+fromlist_path = isis.fromlist.make([trimcub, latitudeCube, longitudeCube, altitudeCube, phaseCube, incidenceCube, emissionCube])
 geomCub = fileBase + '.geom.cub'
-isis.cubeit(fromlist=fromlist_path, to_=geomCub, proplab_=fileName)
+# need to use latitudeCube because imageFile is 16-bit
+isis.cubeit(fromlist_=fromlist_path, to_=geomCub, proplab_=latitudeCube)
 
 # clean up extraneous cube files
 os.system(str("/bin/rm " + latitudeCube))
@@ -266,6 +435,13 @@ os.system(str("/bin/rm " + emissionCube))
 os.system(str("/bin/rm " + incidenceCube))
 os.system(str("/bin/rm " + phaseCube))
 
+# clean up extraneous csv files
+os.system(str("/bin/rm " + latitudeFile))
+os.system(str("/bin/rm " + longitudeFile))
+os.system(str("/bin/rm " + altitudeFile))
+os.system(str("/bin/rm " + emissionFile))
+os.system(str("/bin/rm " + incidenceFile))
+os.system(str("/bin/rm " + phaseFile))
 
 #############################
 ######## SCRIPT END #########
