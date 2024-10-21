@@ -198,16 +198,8 @@ def backplanegen(frmcode, Xoffset, Yoffset, trgepc):
 	dx = 0.000551562
 	dy = 0.000551562
 	
-	# pos x for the SRU is to the top of the frame
-	# pos y is to the left of the frame
-	# so X is lines (i) and should get more negative with each line
-	# Y is samples (j) and should get more negative with each pixel
-		
-	# generate numpy arrays of radian pixel locations for both the X and Y directions
-	xp = bounds[3,1] + Xoffset - np.arange(0.5,511.51,1)*dx
-	yp = bounds[3,2] + Yoffset - np.arange(0.5,511.51,1)*dy
-	zp = bounds[3,0]
-	#start [0.98081485  0.13784454  0.13784454]
+	Yoffset *= dy
+	Xoffset *= dx
 	
 	for i in range(0,512):
 		# initialize each line so as to clear the previous line
@@ -219,16 +211,33 @@ def backplanegen(frmcode, Xoffset, Yoffset, trgepc):
 		incidenceLine = ""
 		for j in range(0,512):
 			# defining variables
-			line = j
-			sample = i
-			lineRadians = xp[j]
-			sampleRadians = yp[i]
+			line = i
+			sample = j
+			# sampleRadians = xp[j]
+			# lineRadians = yp[i]
 			
 			# applying geometric correction
+			tanxref = float((sample - 255.5) / 1760.21137)
+			tanyref = float((line - 255.5) / 1760.21137)
 			
+			pixradi = math.sqrt(tanxref ** 2 + tanyref ** 2)
+			radcorr = 0.999432579 + (-0.0295412410) * pixradi + 0.2733020107 * pixradi ** 2 + (-1.9368112951) * pixradi ** 4
+			
+			tanxref *= radcorr
+			tanyref *= radcorr
+			
+			sample = tanxref * 1760.21137 + 255.5
+			line = tanyref * 1760.21137 + 255.5
+			
+			sampleRadians = bounds[3,1] - (sample * dx)
+			lineRadians = bounds[3,2] - (line * dy)
+			
+			# apply offset
+			sampleRadians += Xoffset
+			lineRadians += Yoffset
 			
 			# vector for pixel in radians
-			dvec=[zp,xp[j],yp[i]]
+			dvec=[bounds[3,0],sampleRadians,lineRadians]
 			# ensures the script won't break on pixels that don't intersect Io
 			with spiceypy.no_found_check():
 				[spoint, trgepc, srfvec, found] = spiceypy.sincpt(method2, target, etStart, tarfrm, abcorr, scname, frame, dvec)
@@ -272,6 +281,22 @@ def backplanegen(frmcode, Xoffset, Yoffset, trgepc):
 		print(emissionLine, file = emissionFile)
 		print(phaseLine, file = phaseFile)
 		print(incidenceLine, file = incidenceFile)
+
+# backplanecubegen converts the CSV backplanes generated earlier into ISIS cube files
+# using ascii2isis then adds band information with the name of the backplane parameter
+# as the filter name and the NAIF code and wavelength information for the image.
+# backplanecubegen returns the full path and name of the output cube file
+
+def backplanecubegen(backplane, bpName):
+	csvFile = fileBase + '_' + backplane + '.csv'
+	cubFile = fileBase + '.' + backplane + '.cub'
+	isis.ascii2isis(from_=csvFile, to_=cubFile, order_="bsq", samples_=512, lines_=512, bands_=1, skip_=0, setnullrange_="true", nullmin_=-2000, nullmax_=-1000)
+	isis.editlab(from_=cubFile, opt_="addg", grpname_="BandBin")
+	isis.editlab(from_=cubFile, option="addkey", grpname="BandBin", keyword="FilterName", value=bpName)
+	isis.editlab(from_=cubFile, option="addkey", grpname="BandBin", keyword="Center", value=filterCenter)
+	isis.editlab(from_=cubFile, option="addkey", grpname="BandBin", keyword="Width", value=filterWidth)
+	isis.editlab(from_=cubFile, option="addkey", grpname="BandBin", keyword="NaifIkCode", value=srufrm)
+	return cubFile
 
 ###########################
 ### COMMAND LINE PARSER ###
@@ -374,14 +399,6 @@ phaseFile = open( phaseFile, 'w' )
 # obtain cartesian coordinates for sub-spacecraft point at the time of closest approach
 [spoint, trgepc, subsrfvec] = spiceypy.subpnt( method, target, et, tarfrm, abcorr, scname )
 
-# IFOV from the IK
-# for now using this, but I can commment this out
-dx = 0.000551562
-dy = 0.000551562
-
-offsetY *= dy
-offsetX *= dx
-
 backplanegen(srufrm, offsetX, offsetY, trgepc)
 
 latitudeFile.close()
@@ -395,14 +412,9 @@ incidenceFile.close()
 ######## CUBE GENERATION #########
 ##################################
 
-# generate cubes files for each backplane using the backplanecubegen function
-latitudeCube = fileBase + '.' + 'latitude' + '.cub'
-longitudeCube = fileBase + '.' + 'longitude' + '.cub'
-altitudeCube = fileBase + '.' + 'altitude' + '.cub'
-emissionCube = fileBase + '.' + 'emission' + '.cub'
-incidenceCube = fileBase + '.' + 'incidence' + '.cub'
-phaseCube = fileBase + '.' + 'phase' + '.cub'
-trimcub = fileBase + '.' + 'trim' + '.cub'
+filterName = 'IMAGE'
+filterCenter = 716
+filterWidth = 421
 
 # csv files
 latitudeFile = fileBase + '_latitude.csv'
@@ -412,16 +424,54 @@ emissionFile = fileBase + '_emission.csv'
 incidenceFile = fileBase + '_incidence.csv'
 phaseFile = fileBase + '_phase.csv'
 
-isis.ascii2isis(from_=latitudeFile, to_=latitudeCube, order_="bsq", samples_=512, lines_=512, bands_=1, skip_=0, setnullrange_="true", nullmin_=-2000, nullmax_=-1000)
-isis.ascii2isis(from_=longitudeFile, to_=longitudeCube, order_="bsq", samples_=512, lines_=512, bands_=1, skip_=0, setnullrange_="true", nullmin_=-2000, nullmax_=-1000)
-isis.ascii2isis(from_=altitudeFile, to_=altitudeCube, order_="bsq", samples_=512, lines_=512, bands_=1, skip_=0, setnullrange_="true", nullmin_=-2000, nullmax_=-1000)
-isis.ascii2isis(from_=emissionFile, to_=emissionCube, order_="bsq", samples_=512, lines_=512, bands_=1, skip_=0, setnullrange_="true", nullmin_=-2000, nullmax_=-1000)
-isis.ascii2isis(from_=incidenceFile, to_=incidenceCube, order_="bsq", samples_=512, lines_=512, bands_=1, skip_=0, setnullrange_="true", nullmin_=-2000, nullmax_=-1000)
-isis.ascii2isis(from_=phaseFile, to_=phaseCube, order_="bsq", samples_=512, lines_=512, bands_=1, skip_=0, setnullrange_="true", nullmin_=-2000, nullmax_=-1000)
+# generate cubes files for each backplane using the backplanecubegen function
+latitudeCube = backplanecubegen("latitude", "Latitude")
+longitudeCube = backplanecubegen("longitude", "Longitude")
+altitudeCube = backplanecubegen("altitude", "Altitude")
+emissionCube = backplanecubegen("emission", "Emission Angle")
+incidenceCube = backplanecubegen("incidence", "Incidence Angle")
+phaseCube = backplanecubegen("phase", "Phase Angle")
 
-# create merged product
+# create image product
 isis.fits2isis(from_=fitsFile, to_=imageFile)
+trimcub = fileBase + '.' + 'trim' + '.cub'
 isis.trim(from_=imageFile, to_=trimcub, top_=1, bottom_=2, left_=2, right_=1)
+
+# add labels to the image file
+isis.editlab(from_=latitudeCube, opt_="addg", grpname_="Instrument")
+isis.editlab(from_=latitudeCube, option="addkey", grpname="Instrument", keyword="SpacecraftName", value=scname)
+isis.editlab(from_=latitudeCube, option="addkey", grpname="Instrument", keyword="InstrumentId", value="SRU")
+isis.editlab(from_=latitudeCube, option="addkey", grpname="Instrument", keyword="TargetName", value=target)
+startDate = spiceypy.timout( etStart, datefmt )
+startTime = spiceypy.timout( etStart, timefmt )
+startTime = startDate + "T" + startTime
+isis.editlab(from_=latitudeCube, option="addkey", grpname="Instrument", keyword="StartTime", value=startTime)
+isis.editlab(from_=latitudeCube, option="addkey", grpname="Instrument", keyword="SpacecraftClockStartCount", value=sclkStart)
+isis.editlab(from_=latitudeCube, option="addkey", grpname="Instrument", keyword="ExposureDuration", value=exposureTime)
+isis.editlab(from_=latitudeCube, opt_="addg", grpname_="Archive")
+isis.editlab(from_=latitudeCube, option="addkey", grpname="Archive", keyword="DataSetId", value="JNO-J-SRU-EDR-2-L0-V1.0")
+isis.editlab(from_=latitudeCube, option="addkey", grpname="Archive", keyword="ProductVersionId", value='"01"')
+isis.editlab(from_=latitudeCube, option="addkey", grpname="Archive", keyword="ProducerId", value="JUNO_SRU_TEAM")
+isis.editlab(from_=latitudeCube, option="addkey", grpname="Archive", keyword="ProductId", value=productID)
+isis.editlab(from_=latitudeCube, option="addkey", grpname="Archive", keyword="ProductCreationTime", value=productCreate)
+isis.editlab(from_=latitudeCube, option="addkey", grpname="Archive", keyword="FileName", value=productID)	
+isis.editlab(from_=latitudeCube, option="addkey", grpname="Archive", keyword="ExposureTimestamp", value=sclkStart)
+isis.editlab(from_=latitudeCube, option="addkey", grpname="Archive", keyword="IFOV", value="5.51562e-004")
+isis.editlab(from_=latitudeCube, option="addkey", grpname="Archive", keyword="IFOVUnit", value="rad/px")
+isis.editlab(from_=latitudeCube, option="addkey", grpname="Archive", keyword="StandardDataProductID", value=dataType)
+isis.editlab(from_=latitudeCube, option="addkey", grpname="Archive", keyword="DetectorDescription", value="2D Array")
+isis.editlab(from_=latitudeCube, option="addkey", grpname="Archive", keyword="PixelHeight", value=17.0)
+isis.editlab(from_=latitudeCube, option="addkey", grpname="Archive", keyword="PixelHeightUnit", value="MICRON")
+isis.editlab(from_=latitudeCube, option="addkey", grpname="Archive", keyword="PixelWidth", value=17.0)
+isis.editlab(from_=latitudeCube, option="addkey", grpname="Archive", keyword="PixelWidthUnit", value="MICRON")
+isis.editlab(from_=latitudeCube, option="addkey", grpname="Archive", keyword="OrbitNumber", value=orbit)
+
+isis.editlab(from_=trimcub, opt_="addg", grpname_="BandBin")
+isis.editlab(from_=trimcub, option="addkey", grpname="BandBin", keyword="FilterName", value=filterName)
+isis.editlab(from_=trimcub, option="addkey", grpname="BandBin", keyword="Center", value=filterCenter)
+isis.editlab(from_=trimcub, option="addkey", grpname="BandBin", keyword="Width", value=filterWidth)
+isis.editlab(from_=trimcub, option="addkey", grpname="BandBin", keyword="NaifIkCode", value=srufrm)
+
 fromlist_path = isis.fromlist.make([trimcub, latitudeCube, longitudeCube, altitudeCube, phaseCube, incidenceCube, emissionCube])
 geomCub = fileBase + '.geom.cub'
 # need to use latitudeCube because imageFile is 16-bit
