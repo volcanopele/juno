@@ -201,6 +201,11 @@ def backplanegen(frmcode, Xoffset, Yoffset, trgepc):
 	Yoffset *= dy
 	Xoffset *= dx
 	
+	# radii
+	equRadii = (radii[0] + radii[1]) / 2
+	polRadii = radii[2]
+	flatten = (equRadii - polRadii) / equRadii
+	
 	for i in range(0,512):
 		# initialize each line so as to clear the previous line
 		latitudeLine = ""
@@ -209,6 +214,8 @@ def backplanegen(frmcode, Xoffset, Yoffset, trgepc):
 		emissionLine = ""
 		phaseLine = ""
 		incidenceLine = ""
+		phaseJupLine = ""
+		incidenceJupLine = ""
 		for j in range(0,512):
 			# defining variables
 			line = i
@@ -242,7 +249,7 @@ def backplanegen(frmcode, Xoffset, Yoffset, trgepc):
 			with spiceypy.no_found_check():
 				[spoint, trgepc, srfvec, found] = spiceypy.sincpt(method2, target, etStart, tarfrm, abcorr, scname, frame, dvec)
 				if found:
-					[lon, lat, alti] = spiceypy.recpgr(target, spoint, radii[0], (radii[0]-radii[2])/radii[0])
+					[lon, lat, alti] = spiceypy.recpgr(target, spoint, equRadii, flatten)
 					lon = lon * spiceypy.dpr()
 					lat = lat * spiceypy.dpr()
 					alt = spiceypy.vnorm( srfvec )
@@ -250,6 +257,9 @@ def backplanegen(frmcode, Xoffset, Yoffset, trgepc):
 					inc = solar * spiceypy.dpr()
 					ema = emissn * spiceypy.dpr()
 					pha = phase * spiceypy.dpr()
+					[trgepc_j, srfvec_j, phase_j, solar_j, emissn_j] = spiceypy.illumg(method2, target, "599", etStart, tarfrm, abcorr, scname, spoint)
+					inj = solar_j * spiceypy.dpr()
+					phj = phase_j * spiceypy.dpr()
 				# if pixel doesn't intersect Io, a default value of -1024.0 is used
 				else:
 					lon = -1024.0
@@ -258,6 +268,8 @@ def backplanegen(frmcode, Xoffset, Yoffset, trgepc):
 					inc = -1024.0
 					ema = -1024.0
 					pha = -1024.0
+					phj = -1024.0
+					inj = -1024.0
 			# a very verbose method of generating a CSV file, but the numpy savetxt method had 
 			# issues with merging two of them
 			if latitudeLine == "":
@@ -267,6 +279,8 @@ def backplanegen(frmcode, Xoffset, Yoffset, trgepc):
 				emissionLine = str(ema)
 				phaseLine = str(pha)
 				incidenceLine = str(inc)
+				phaseJupLine = str(phj)
+				incidenceJupLine = str(inj)
 			else:
 				latitudeLine = latitudeLine + "," + str(lat)
 				longitudeLine = longitudeLine + "," + str(lon)
@@ -274,6 +288,8 @@ def backplanegen(frmcode, Xoffset, Yoffset, trgepc):
 				emissionLine = emissionLine + "," + str(ema)
 				phaseLine = phaseLine + "," + str(pha)
 				incidenceLine = incidenceLine + "," + str(inc)
+				phaseJupLine = phaseJupLine + "," + str(phj)
+				incidenceJupLine = incidenceJupLine + "," + str(inj)
 		
 		print(latitudeLine, file = latitudeFile)
 		print(longitudeLine, file = longitudeFile)
@@ -281,6 +297,8 @@ def backplanegen(frmcode, Xoffset, Yoffset, trgepc):
 		print(emissionLine, file = emissionFile)
 		print(phaseLine, file = phaseFile)
 		print(incidenceLine, file = incidenceFile)
+		print(phaseJupLine, file = phaseJupFile)
+		print(incidenceJupLine, file = incidenceJupFile)
 
 # backplanecubegen converts the CSV backplanes generated earlier into ISIS cube files
 # using ascii2isis then adds band information with the name of the backplane parameter
@@ -382,6 +400,8 @@ altitudeFile = fileBase + '_altitude.csv'
 emissionFile = fileBase + '_emission.csv'
 incidenceFile = fileBase + '_incidence.csv'
 phaseFile = fileBase + '_phase.csv'
+incidenceJupFile = fileBase + '_incidence_j.csv'
+phaseJupFile = fileBase + '_phase_j.csv'
 fitsFile = fileBase + '.FIT'
 imageFile = fileBase + '.cub'
 
@@ -392,6 +412,8 @@ altitudeFile = open( altitudeFile, 'w' )
 emissionFile = open( emissionFile, 'w' )
 incidenceFile = open( incidenceFile, 'w' )
 phaseFile = open( phaseFile, 'w' )	
+incidenceJupFile = open( incidenceJupFile, 'w' )
+phaseJupFile = open( phaseJupFile, 'w' )	
 	
 # get radii of Io from spice
 [num, radii] = spiceypy.bodvrd(target, 'RADII', 3)
@@ -407,6 +429,8 @@ altitudeFile.close()
 emissionFile.close()
 phaseFile.close()
 incidenceFile.close()
+phaseJupFile.close()
+incidenceJupFile.close()
 
 ##################################
 ######## CUBE GENERATION #########
@@ -423,6 +447,8 @@ altitudeFile = fileBase + '_altitude.csv'
 emissionFile = fileBase + '_emission.csv'
 incidenceFile = fileBase + '_incidence.csv'
 phaseFile = fileBase + '_phase.csv'
+incidenceJupFile = fileBase + '_incidence_j.csv'
+phaseJupFile = fileBase + '_phase_j.csv'
 
 # generate cubes files for each backplane using the backplanecubegen function
 latitudeCube = backplanecubegen("latitude", "Latitude")
@@ -431,6 +457,8 @@ altitudeCube = backplanecubegen("altitude", "Altitude")
 emissionCube = backplanecubegen("emission", "Emission Angle")
 incidenceCube = backplanecubegen("incidence", "Incidence Angle")
 phaseCube = backplanecubegen("phase", "Phase Angle")
+incidenceJupCube = backplanecubegen("incidence_j", "Jupiter Incidence Angle")
+phaseJupCube = backplanecubegen("phase_j", "Jupiter Phase Angle")
 
 # create image product
 isis.fits2isis(from_=fitsFile, to_=imageFile)
@@ -472,7 +500,7 @@ isis.editlab(from_=trimcub, option="addkey", grpname="BandBin", keyword="Center"
 isis.editlab(from_=trimcub, option="addkey", grpname="BandBin", keyword="Width", value=filterWidth)
 isis.editlab(from_=trimcub, option="addkey", grpname="BandBin", keyword="NaifIkCode", value=srufrm)
 
-fromlist_path = isis.fromlist.make([trimcub, latitudeCube, longitudeCube, altitudeCube, phaseCube, incidenceCube, emissionCube])
+fromlist_path = isis.fromlist.make([trimcub, latitudeCube, longitudeCube, altitudeCube, phaseCube, incidenceCube, emissionCube, phaseJupCube, incidenceJupCube])
 geomCub = fileBase + '.geom.cub'
 # need to use latitudeCube because imageFile is 16-bit
 isis.cubeit(fromlist_=fromlist_path, to_=geomCub, proplab_=latitudeCube)
@@ -484,6 +512,8 @@ os.system(str("/bin/rm " + altitudeCube))
 os.system(str("/bin/rm " + emissionCube))
 os.system(str("/bin/rm " + incidenceCube))
 os.system(str("/bin/rm " + phaseCube))
+os.system(str("/bin/rm " + phaseJupCube))
+os.system(str("/bin/rm " + incidenceJupCube))
 
 # clean up extraneous csv files
 os.system(str("/bin/rm " + latitudeFile))
@@ -492,6 +522,8 @@ os.system(str("/bin/rm " + altitudeFile))
 os.system(str("/bin/rm " + emissionFile))
 os.system(str("/bin/rm " + incidenceFile))
 os.system(str("/bin/rm " + phaseFile))
+os.system(str("/bin/rm " + incidenceJupFile))
+os.system(str("/bin/rm " + phaseJupFile))
 
 #############################
 ######## SCRIPT END #########
