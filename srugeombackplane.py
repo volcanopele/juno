@@ -177,6 +177,7 @@ def fileParse(inputs):
 	etStop = spiceypy.scs2e(-61999,stopTime)
 	# Image mid-time calculated
 	et = (etStart+etStop)/2
+	
 	if exposureTime == "":
 		exposureTime = etStop - etStart
 	
@@ -191,12 +192,15 @@ def fileParse(inputs):
 # latitude, longitude, altitude (distance to the intercept point), incidence 
 # angle, phase angle, and emission angle
 
-def backplanegen(frmcode, Xoffset, Yoffset, trgepc):
+def backplanegen(frmcode, Xoffset, Yoffset, trgepc, rot):
 	[shape, frame, bsight, nbounds, bounds] = spiceypy.getfov(frmcode, 20)
 	
 	# calculation of the IFOV
-	dx = 0.000551562
-	dy = 0.000551562
+	dx = 0.000568118
+	dy = 0.000568118
+	
+	# limits
+	corner = 0.1451530222
 	
 	Yoffset *= dy
 	Xoffset *= dx
@@ -224,6 +228,8 @@ def backplanegen(frmcode, Xoffset, Yoffset, trgepc):
 			# lineRadians = yp[i]
 			
 			# applying geometric correction
+			# converts the sample/line position in pixel space to the sample/line in radians
+			# but taking into account optical distortion
 			tanxref = float((sample - 255.5) / 1760.21137)
 			tanyref = float((line - 255.5) / 1760.21137)
 			
@@ -233,18 +239,29 @@ def backplanegen(frmcode, Xoffset, Yoffset, trgepc):
 			tanxref *= radcorr
 			tanyref *= radcorr
 			
-			sample = tanxref * 1760.21137 + 255.5
-			line = tanyref * 1760.21137 + 255.5
-			
-			sampleRadians = bounds[3,1] - (sample * dx)
-			lineRadians = bounds[3,2] - (line * dy)
-			
+			sampleRadians = tanxref * -1
+			lineRadians = tanyref * -1
+
+			# rotation
+			# positive is a clockwise rotation about the boresight
+			if rot != "":
+				sampleRadSave = sampleRadians
+				lineRadSave = lineRadians
+				sampleRadians = sampleRadSave * math.cos(math.radians(rot)) - lineRadSave * math.sin(math.radians(rot))
+				lineRadians = sampleRadSave * math.sin(math.radians(rot)) + lineRadSave * math.cos(math.radians(rot))
+				
 			# apply offset
 			sampleRadians += Xoffset
 			lineRadians += Yoffset
 			
+			# z-axis calculation
+			pixradi = math.sqrt((sample - 255.5) ** 2 + (line - 255.5) ** 2)
+			pixratio = pixradi / 361.331565
+			zoffset = (bsight[0] - bounds[3,0]) * pixratio
+			bsightRadians = 1 - zoffset
+			
 			# vector for pixel in radians
-			dvec=[bounds[3,0],sampleRadians,lineRadians]
+			dvec=[bsightRadians,sampleRadians,lineRadians]
 			# ensures the script won't break on pixels that don't intersect Io
 			with spiceypy.no_found_check():
 				[spoint, trgepc, srfvec, found] = spiceypy.sincpt(method2, target, etStart, tarfrm, abcorr, scname, frame, dvec)
@@ -421,7 +438,8 @@ phaseJupFile = open( phaseJupFile, 'w' )
 # obtain cartesian coordinates for sub-spacecraft point at the time of closest approach
 [spoint, trgepc, subsrfvec] = spiceypy.subpnt( method, target, et, tarfrm, abcorr, scname )
 
-backplanegen(srufrm, offsetX, offsetY, trgepc)
+backplanegen(srufrm, offsetX, offsetY, trgepc, rotation)
+
 
 latitudeFile.close()
 longitudeFile.close()
