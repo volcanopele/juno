@@ -196,8 +196,8 @@ def backplanegen(frmcode, Xoffset, Yoffset, trgepc, rot):
 	[shape, frame, bsight, nbounds, bounds] = spiceypy.getfov(frmcode, 20)
 	
 	# calculation of the IFOV
-	dx = 0.000568118
-	dy = 0.000568118
+	dx = 0.000567028
+	dy = 0.000567028
 	
 	# limits
 	corner = 0.1451530222
@@ -220,6 +220,8 @@ def backplanegen(frmcode, Xoffset, Yoffset, trgepc, rot):
 		incidenceLine = ""
 		phaseJupLine = ""
 		incidenceJupLine = ""
+		xRadiansLine = ""
+		yRadiansLine = ""
 		for j in range(0,512):
 			# defining variables
 			line = i
@@ -232,6 +234,8 @@ def backplanegen(frmcode, Xoffset, Yoffset, trgepc, rot):
 			# but taking into account optical distortion
 			tanxref = float((sample - 255.5) / 1760.21137)
 			tanyref = float((line - 255.5) / 1760.21137)
+			# tanxref = float((sample - 255.5) / 1771.014559)
+			# tanyref = float((line - 255.5) / 1797.66902)
 			
 			pixradi = math.sqrt(tanxref ** 2 + tanyref ** 2)
 			radcorr = 0.999432579 + (-0.0295412410) * pixradi + 0.2733020107 * pixradi ** 2 + (-1.9368112951) * pixradi ** 4
@@ -298,6 +302,8 @@ def backplanegen(frmcode, Xoffset, Yoffset, trgepc, rot):
 				incidenceLine = str(inc)
 				phaseJupLine = str(phj)
 				incidenceJupLine = str(inj)
+				xRadiansLine = str(sampleRadians)
+				yRadiansLine = str(lineRadians)
 			else:
 				latitudeLine = latitudeLine + "," + str(lat)
 				longitudeLine = longitudeLine + "," + str(lon)
@@ -307,6 +313,8 @@ def backplanegen(frmcode, Xoffset, Yoffset, trgepc, rot):
 				incidenceLine = incidenceLine + "," + str(inc)
 				phaseJupLine = phaseJupLine + "," + str(phj)
 				incidenceJupLine = incidenceJupLine + "," + str(inj)
+				xRadiansLine = xRadiansLine + "," + str(sampleRadians)
+				yRadiansLine = yRadiansLine + "," + str(lineRadians)
 		
 		print(latitudeLine, file = latitudeFile)
 		print(longitudeLine, file = longitudeFile)
@@ -316,6 +324,9 @@ def backplanegen(frmcode, Xoffset, Yoffset, trgepc, rot):
 		print(incidenceLine, file = incidenceFile)
 		print(phaseJupLine, file = phaseJupFile)
 		print(incidenceJupLine, file = incidenceJupFile)
+		if radiansFile:
+			print(xRadiansLine, file = xRadiansFile)
+			print(yRadiansLine, file = yRadiansFile)
 
 # backplanecubegen converts the CSV backplanes generated earlier into ISIS cube files
 # using ascii2isis then adds band information with the name of the backplane parameter
@@ -421,6 +432,8 @@ incidenceJupFile = fileBase + '_incidence_j.csv'
 phaseJupFile = fileBase + '_phase_j.csv'
 fitsFile = fileBase + '.FIT'
 imageFile = fileBase + '.cub'
+xRadiansFile = fileBase + 'xRadians.csv'
+yRadiansFile = fileBase + 'yRadians.csv'
 
 # open each CSV file
 latitudeFile = open( latitudeFile, 'w' )
@@ -430,7 +443,15 @@ emissionFile = open( emissionFile, 'w' )
 incidenceFile = open( incidenceFile, 'w' )
 phaseFile = open( phaseFile, 'w' )	
 incidenceJupFile = open( incidenceJupFile, 'w' )
-phaseJupFile = open( phaseJupFile, 'w' )	
+phaseJupFile = open( phaseJupFile, 'w' )
+
+# optional radians file
+radiansFile = False
+if radiansFile:
+	xRadiansFile = fileBase + 'xRadians.csv'
+	yRadiansFile = fileBase + 'yRadians.csv'
+	xRadiansFile = open( xRadiansFile, 'w' )
+	yRadiansFile = open( yRadiansFile, 'w' )
 	
 # get radii of Io from spice
 [num, radii] = spiceypy.bodvrd(target, 'RADII', 3)
@@ -449,6 +470,9 @@ phaseFile.close()
 incidenceFile.close()
 phaseJupFile.close()
 incidenceJupFile.close()
+if radiansFile:
+	xRadiansFile.close()
+	yRadiansFile.close()
 
 ##################################
 ######## CUBE GENERATION #########
@@ -511,6 +535,9 @@ isis.editlab(from_=latitudeCube, option="addkey", grpname="Archive", keyword="Pi
 isis.editlab(from_=latitudeCube, option="addkey", grpname="Archive", keyword="PixelWidth", value=17.0)
 isis.editlab(from_=latitudeCube, option="addkey", grpname="Archive", keyword="PixelWidthUnit", value="MICRON")
 isis.editlab(from_=latitudeCube, option="addkey", grpname="Archive", keyword="OrbitNumber", value=orbit)
+isis.editlab(from_=latitudeCube, opt_="addg", grpname_="Kernels")
+isis.editlab(from_=latitudeCube, option="addkey", grpname="Kernels", keyword="NaifFrameCode", value=srufrm)
+
 
 isis.editlab(from_=trimcub, opt_="addg", grpname_="BandBin")
 isis.editlab(from_=trimcub, option="addkey", grpname="BandBin", keyword="FilterName", value=filterName)
