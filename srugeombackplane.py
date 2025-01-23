@@ -194,7 +194,7 @@ def fileParse(inputs):
 
 def backplanegen(frmcode, Xoffset, Yoffset, trgepc, rot):
 	[shape, frame, bsight, nbounds, bounds] = spiceypy.getfov(frmcode, 20)
-	
+	print(bounds)
 	# calculation of the IFOV
 	dx = 0.000567028
 	dy = 0.000567028

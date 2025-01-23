@@ -311,6 +311,28 @@ if useLabel:
 	isis.maptemplate(map_='solarmap.map', targopt_="user", targetname_=target, clat_=format(lat_slr * spiceypy.dpr()), clon_=lon_slr, londir_="POSITIVEWEST", projection_="ORTHOGRAPHIC", resopt_="MPP", resolution_=solarres, rngopt_="user", minlat_=-90, maxlat_=90, minlon_=0, maxlon_=360)
 	
 isis.maptemplate(map_='jncammap.map', targopt_="user", targetname_=target, clat_=format(lat * spiceypy.dpr()), clon_=lon, dist_=alt, londir_="POSITIVEWEST", projection_="POINTPERSPECTIVE", resopt_="MPP", resolution_=jncamres, rngopt_="user", minlat_=-90, maxlat_=90, minlon_=0, maxlon_=360)
+
+jncamres /= 1000
+lat *= spiceypy.dpr()
+if lat >= 0:
+	direction = ' North'
+else:
+	direction = ' South'
+	lat *= -1
+
+IMAGE_NAME='JNCE_2024362_68C00011_V01'
+ORBIT = 'PJ68/'
+print('', file = outputFile)
+print('    <td WIDTH="205" align="center"><a href="' + ORBIT + IMAGE_NAME + '.2xpoint.png">', file = outputFile)
+print('    <img src="' + ORBIT + IMAGE_NAME + '.jpg" border="0"></a></td>', file = outputFile)
+print('    <td><b>' + IMAGE_NAME + '</b>', file = outputFile)
+print('    <br>Image Time: ' + timstr, file = outputFile)
+print('    <br>Resolution: ' + '{:.3f}'.format(jncamres) + ' km/pixel', file = outputFile)
+print('    <br>Center Latitude: ' + '{:.3f}'.format(lat) + direction, file = outputFile)
+print('    <br>Center Longitude: ' + '{:.3f}'.format(lon) + ' West', file = outputFile)
+print('    <br>Altitude: ' + '{:.3f}'.format(alt) + ' km', file = outputFile)
+print('    <br>Filters used: RED-GREEN-BLUE', file = outputFile)
+
 spiceypy.unload( metakr )
 spiceypy.unload( 'io_north_pole.bsp' )
 

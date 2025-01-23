@@ -15,7 +15,7 @@ import numpy as np
 
 # Usage:
 
-# python jiramReprojection.py 
+# python sruReprojection.py 
 	# -i <full path to label file> 
 	# [-x <pixel offset>]
 	# [-y <pixel offset>] 
@@ -23,21 +23,21 @@ import numpy as np
 	# [-b <m or l>]
 	# [-s <fill or null]
 
-# i requires a JIRAM label file (extension .LBL) with a JIRAM image (extention .IMG) in the same directory
+# i requires a SRU label file (extension .LBL) with a SRU image (extention .IMG) in the same directory
 # m accepts both a map file for use in ISIS's map2map program or a reprojected ISIS cube file
 
 # s either nulls out pixels that are above a DN of 12000 or fills them with the band radiance equivalent of DN 12000
 
 # example use
 
-# python jiramReprojection.py -i /Users/perry/Dropbox/Io/Juno/PJ17/M-band/JIR_IMG_RDR_2018355T122946_V01.LBL -x -1.25 -y 2.5 -z 0.25 -m /Users/perry/Dropbox/Io/Juno/PJ17/M-band/JIR_IMG_RDR_2018355T123147_V01.map.cub
+# python sruReprojection.py -i /Users/perry/Dropbox/Io/Juno/PJ17/M-band/JIR_IMG_RDR_2018355T122946_V01.LBL -x -1.25 -y 2.5 -z 0.25 -m /Users/perry/Dropbox/Io/Juno/PJ17/M-band/JIR_IMG_RDR_2018355T123147_V01.map.cub
 
 # in this case, the label for the image to be reprojected is /Users/perry/Dropbox/Io/Juno/PJ17/M-band/JIR_IMG_RDR_2018355T122946_V01.LBL
 # the spice geometry is to be offset by -1.25 pixels in the X direction and 2.5 pixels in the Y direction
-# the JIRAM image is to be reprojected to match /Users/perry/Dropbox/Io/Juno/PJ17/M-band/JIR_IMG_RDR_2018355T123147_V01.map.cub
+# the SRU image is to be reprojected to match /Users/perry/Dropbox/Io/Juno/PJ17/M-band/JIR_IMG_RDR_2018355T123147_V01.map.cub
 
 # if no offsets are included, the spice geometry will be used with no adjustment
-# if no map file or cube file is specified, the script will generate one matching the geometry of the input JIRAM image but with 5x the pixel scale
+# if no map file or cube file is specified, the script will generate one matching the geometry of the input SRU image but with 5x the pixel scale
 
 # PREREQUISITES
 
@@ -64,7 +64,7 @@ import numpy as np
 ###### LICENSE AND COPYRIGHT ######
 ###################################
 
-# Copyright (C) 2022 Arizona Board of Regents on behalf of the Planetary
+# Copyright (C) 2025 Arizona Board of Regents on behalf of the Planetary
 # Image Research Laboratory, Lunar and Planetary Laboratory at the
 # University of Arizona.
 #
@@ -97,16 +97,8 @@ target = 'IO'
 targid = 501
 tarfrm = 'IAU_IO'
 abcorr = 'LT+S'
-jirmid = -61410
-jrmfrm = 'JUNO_JIRAM_I'
-lbandfrm = -61411
-lbndnm = 'JUNO_JIRAM_I_LBAND'
-mbandfrm = -61412
-mbndnm = 'JUNO_JIRAM_I_MBAND'
-specfrm = -61420
-specnm = 'JUNO_JIRAM_S'
-cal_flat_b = '/Users/perry/Documents/scripts/juno/calibration/flat_1ms_bright.cub'
-cal_flat_d = '/Users/perry/Documents/scripts/juno/calibration/flat_1ms_dark.cub'
+srufrm = -61071
+srunam = 'JUNO_SRU1'
 
 # various parameters for the script
 method = 'Intercept/Ellipsoid'
@@ -122,7 +114,7 @@ delimiter=","
 ### INITALIZE FUNCTIONS ###
 ###########################
 
-# fileParse takes an input JIRAM label file and pulls out pieces of information 
+# fileParse takes an input SRU label file and pulls out pieces of information 
 # that will be used by the script, outputting as a tuple the image mid-time, 
 # product ID, and orbit number
 
@@ -156,54 +148,62 @@ def fileParse(inputs):
 				productID = line
 				productIDs = productID.split(" ")
 				productIDs = sorted(productIDs, reverse=True)
-				productID = productIDs[1]
+				productID = productIDs[2]
+				productID = productID.split('"')
+				productID = productID[1]
 		elif 'ORBIT_NUMBER' in line:
 			orbit = line
 			orbits = orbit.split(" ")
 			orbits = sorted(orbits, reverse=True)
 			orbit = orbits[2]
-		elif 'INSTRUMENT_MODE_ID' in line:
-			instrumentMode = line
-			instrumentModes = instrumentMode.split(" ")
-			instrumentModes = sorted(instrumentModes, reverse=True)
-			instrumentMode = instrumentModes[0]
-			instrumentModes = instrumentMode.split("_")
-			instrumentMode = instrumentModes[1]
 		elif 'EXPOSURE_DURATION' in line:
 			exposureTime = line
 			exposureTimes = exposureTime.split(" ")
 			exposureTimes = sorted(exposureTimes, reverse=True)
 			exposureTime = float(exposureTimes[3])
+		elif 'PRODUCT_CREATION_TIME' in line:
+			productCreate = line
+			productCreates = productCreate.split(" ")
+			productCreates = sorted(productCreates, reverse=True)
+			productCreate = productCreates[2]
+		elif 'TARGET_NAME' in line:
+			targetName = line
+			targetNames = targetName.split(" ")
+			targetNames = sorted(targetNames, reverse=True)
+			targetName = targetNames[2]
+			targetName = targetName.split('"')
+			targetName = targetName[1]
 	# start and stop time converted to seconds past J2000
 	etStart = spiceypy.scs2e(-61999,startTime)
 	etStop = spiceypy.scs2e(-61999,stopTime)
 	# Image mid-time calculated
 	et = (etStart+etStop)/2
 	
+	if exposureTime == "":
+		exposureTime = etStop - etStart
+	
 	# close file
 	file.close()
 	
 	# tuple with image mid-time, product ID, and orbit output by function
-	return [et, productID, orbit, etStart, exposureTime, startTime, instrumentMode]
+	return [et, productID, orbit, etStart, exposureTime, startTime, productCreate, targetName]
 
 def coordinates(frmcode, tarfrm, trgepc, etStart, srfvec, xOffset, yOffset):
 	[shape, frame, bsight, nbounds, bounds] = spiceypy.getfov(frmcode, 20)
-	dx = 0.000237767
-	dy = 0.000237767
+	dx = 0.000551562
+	dy = 0.000551562
 	xform = spiceypy.pxfrm2(tarfrm, frame, trgepc, etStart)
 	xformvec = spiceypy.mxv(xform, srfvec)
-	xformvec[0] = xformvec[0] / xformvec[2]
-	xformvec[1] = xformvec[1] / xformvec[2]
-	xformvec[2] = xformvec[2] / xformvec[2]
-	X = xformvec[1] - bounds[3,1]
-	X /= dx
+	ratio = xformvec[0]
+	xformvec[0] = xformvec[0] / ratio
+	xformvec[1] = xformvec[1] / ratio * -1
+	xformvec[2] = xformvec[2] / ratio * -1
+	
+	X = xformvec[1] * 1760.21137 + 255.5
 	X += xOffset
-	X = int(round(X,0))
-	Y = xformvec[0] - bounds[3,0]
-	Y /= dx
-	Y *= -1
+	Y = xformvec[2] * 1760.21137 + 255.5
 	Y += yOffset
-	Y = int(round(Y,0))
+	
 	return X, Y
 
 ########################
@@ -212,7 +212,7 @@ def coordinates(frmcode, tarfrm, trgepc, etStart, srfvec, xOffset, yOffset):
 
 mapfile = ''
 outputfile = ''
-jiramInput = ''
+sruInput = ''
 rotation = ''
 xOffset = 0
 yOffset = 0
@@ -224,31 +224,21 @@ bkgSubtract = False
 flatfield = False
 
 try:
-	opts, args = getopt.getopt(argv, 'i:m:x:y:z:b:s:spec:subtract:flat:', ['mapfile', 'infile'])
+	opts, args = getopt.getopt(argv, 'i:m:x:y:z:', ['mapfile', 'infile'])
 	for opt, arg in opts:
 		if opt in ("-m", "--mapfile"):
 			mapfile = arg
 		if opt in ("-i", "--infile"):
-			jiramInput = arg
+			sruInput = arg
 		if opt in ("-x"):
 			xOffset = float(arg)
 		if opt in ("-y"):
 			yOffset = float(arg)
 		if opt in ("-z"):
 			rotation = float(arg)
-		if opt in ("-b"):
-			bandlimitation = arg
-		if opt in ("-s"):
-			saturation = arg
-		if opt in ("-spec"):
-			spectral = True
-		if opt in ("-subtract"):
-			bkgSubtract = True
-		if opt in ("-flat"):
-			flatfield = True
 			
 except getopt.GetoptError:
-	print('jiramReprojection.py -m <mapfile> -i <infile>')
+	print('sruReprojection.py -m <mapfile> -i <infile>')
 	sys.exit(2)
 
    
@@ -259,38 +249,33 @@ except getopt.GetoptError:
 # initialize spice files
 spiceypy.furnsh( metakr )
 
-# Load JIRAM image if not loaded in command line
+# Load SRU image if not loaded in command line
 # check to make sure that the command line input is fine
 
-if jiramInput != "":
-	jiramfile_tub = os.path.splitext(jiramInput)
-	if jiramfile_tub[1] == '.IMG':
-		jiramInput = jiramfile_tub[0] + '.LBL'
-	elif jiramfile_tub[1] == '.LBL':
-		jiramInput = jiramInput
+if sruInput != "":
+	srufile_tub = os.path.splitext(sruInput)
+	if srufile_tub[1] == '.FIT':
+		sruInput = srufile_tub[0] + '.LBL'
+	elif srufile_tub[1] == '.LBL':
+		sruInput = sruInput
 	else:
-		print("Input file is not a valid JIRAM image or label")
+		print("Input file is not a valid SRU image or label")
 		sys.exit()
 else:
-	jiramInput = fd.askopenfilename(title='Select JIRAM image label', filetypes=(('PDS Labels', '*.LBL'), ('All files', '*.*')))
+	sruInput = fd.askopenfilename(title='Select SRU image label', filetypes=(('PDS Labels', '*.LBL'), ('All files', '*.*')))
 # load map cube
 # mapInput = fd.askopenfilename(title='Select Map Cube', filetypes=(('CUB Files', '*.cub'), ('All files', '*.*')))
 
 # parse label file for information about cube
-parseTuple = fileParse(jiramInput)
+parseTuple = fileParse(sruInput)
 etStart =  float(parseTuple[3])
 productID = parseTuple[1]
-instrumentMode = parseTuple[6]
 orbit = int(parseTuple[2])
-if orbit >= 51:
-	etStart = etStart - 0.62
 exposureTime = float(parseTuple[4])
-saturationLevel = 0.0073 / exposureTime
-safeLevel = saturationLevel * 0.006 / 0.0073
 
 # setup paths
-root = os.path.dirname(jiramInput)
-name = os.path.basename(jiramInput)
+root = os.path.dirname(sruInput)
+name = os.path.basename(sruInput)
 fileBase = root + '/' + productID
 
 print("Now working on " + productID)
@@ -308,6 +293,7 @@ if mapfile != "":
 		isis.map2map(from_=basemp, to_=mapCub, map_=mapPvl, pixres_="map", defaultrange_="map")
 	else:
 		sys.exit()
+	scale = 10
 else:
 	[spoint, trgepc, subsrfvec] = spiceypy.subpnt( method, target, etStart, tarfrm, abcorr, scname )
 	alt = spiceypy.vnorm( subsrfvec )
@@ -318,19 +304,13 @@ else:
 	else:
 		lon = 360.0 - lon
 	lat = lat * spiceypy.dpr()
-	res = alt * 0.237767
-	if orbit == 41 or orbit == 43 or orbit == 47:
-		magnify = 5
-	elif orbit == 49 or orbit == 51 or orbit == 53 or orbit == 55 or orbit == 60 or orbit == 62:
-		magnify = 2
-	elif orbit == 57 or orbit == 58:
-		magnify = 1
-	else:
-		magnify = 10
+	res = alt * 0.5515623
+	magnify = 2
 	res /= magnify
 	isis.maptemplate(map_=mapPvl, targopt_="user", targetname_=target, clat_=lat, clon_=lon, dist_=alt, londir_="POSITIVEWEST", projection_="POINTPERSPECTIVE", resopt_="MPP", resolution_=res, rngopt_="user", minlat_=-90, maxlat_=90, minlon_=0, maxlon_=360)
 	isis.map2map(from_=basemp, to_=mapCub, map_=mapPvl, pixres_="map", defaultrange_="map")
 	print("map cube generated")
+	scale = magnify * 5
 
 # determine size of map cube
 samples = int(isis.getkey(from_=mapCub, grpname_="Dimensions", objname_="Core", keyword_="Samples").stdout)
@@ -339,13 +319,11 @@ lines = int(isis.getkey(from_=mapCub, grpname_="Dimensions", objname_="Core", ke
 arrayLines = lines
 
 # prepare file names
-imageImg = fileBase + '.IMG'
+fitsFile = fileBase + '.FIT'
 imageCub = fileBase + '.cub'
-mirrorCub = fileBase + '.mirror.cub'
-lbandCub = fileBase + '.lband.cub'
-mbandCub = fileBase + '.mband.cub'
-lbandCsv = fileBase + '.lband.txt'
-mbandCsv = fileBase + '.mband.txt'
+trimcub = fileBase + '.trim.cub'
+magcube = fileBase + '.mag.cub'
+sruCsv = fileBase + '.sru.txt'
 
 mapCSV = fileBase + '.map.txt'
 latitudeCub = fileBase + '.latitude.cub'
@@ -367,102 +345,18 @@ isis.phocube(from_=mapCub, to_=longitudeCub, source="PROJECTION", latitude="fals
 isis.isis2ascii(from_=longitudeCub, to_=longitudeCSV, header_="no", delimiter_=delimiter, setpixelvalues="yes", nullvalue_=-1024, hrsvalue_=1)
 longitudePanda = pd.read_csv(longitudeCSV, header=None, dtype=float)
 
-# create pixel arrays
-[shape, frame, bsight, nbounds, bounds] = spiceypy.getfov(lbandfrm, 20)
-dx = 0.000237767
-dy = 0.000237767
-offsetX = xOffset * dx * -1
-offsetY = yOffset * dy * -1
-xp = np.arange(0.5,431.51,1)*dx + bounds[3,1] + offsetX
-yp = bounds[3,0] - np.arange(0.5,127.51,1)*dy - offsetY
-zp = bounds[0,2]
+isis.fits2isis(from_=fitsFile, to_=imageCub)
+isis.trim(from_=imageCub, to_=trimcub, top_=1, bottom_=2, left_=2, right_=1)
+isis.enlarge(from_=trimcub, to_=magcube, sscale=scale, lscale=scale)
 
 
-
-# create JIRAM image arrays
-if instrumentMode == "I1":
-	lBandavailable = True
-	mBandavailable = True
-	imgLines = 256
-elif instrumentMode == "I2":
-	lBandavailable = False
-	mBandavailable = True
-	imgLines = 128
-elif instrumentMode == "I3":
-	lBandavailable = True
-	mBandavailable = False
-	imgLines = 128
-else:
-	print("Incorrect Image Mode")
-	sys.exit()
-
-isis.raw2isis(from_=imageImg, to_=imageCub, samples_=432, lines_=imgLines, bands_=1, bittype_="REAL")
-
-isis.mirror(from_=imageCub, to_=mirrorCub)
-
-# low exposure times images have readout noise than be removed
-# This applies reciprocal corrections to bright and dark columns before mosaicking them back onto the mirrored image
-# requires the -flat to be used
-# instrument sensitivity was cut in half during PJ58 so a different correction factor is needed to calibrate
-# that data
-if flatfield:
-	print("Correcting flat field")
-	nullCub = fileBase + '.null.cub'
-	darkCub = fileBase + '.dark.cub'
-	brightCub = fileBase + '.bright.cub'
-	addedCub = fileBase + '.added.cub'
-	dark2Cub = fileBase + '.dark2.cub'
-	bright2Cub = fileBase + '.bright2.cub'
-	if exposureTime == 0.001:
-		isis.specpix(from_=mirrorCub, to_=nullCub, nullmin_=-1024, nullmax_=0.0000005)
-		isis.fx(f1_=nullCub, f2_=cal_flat_d, to_=darkCub, equation_="f1 * 1.018 * f1 ^ (-0.08) * f2 / f2")
-		isis.fx(f1_=nullCub, f2_=cal_flat_b, to_=brightCub, equation_="f1 * 0.9686 * f1 ^ (0.0891) * f2 / f2")
-	elif exposureTime == 0.002 and orbit == 58:
-		isis.fx(f1_=mirrorCub, to_=addedCub, equation_="f1 + 0.004")
-		isis.specpix(from_=addedCub, to_=nullCub, nullmin_=-1024, nullmax_=0.0000005)
-		isis.fx(f1_=nullCub, f2_=cal_flat_d, to_=dark2Cub, equation_="f1 * 1.01 * f1 ^ (-0.08) * f2 / f2")
-		isis.fx(f1_=nullCub, f2_=cal_flat_b, to_=bright2Cub, equation_="f1 * 0.99 * f1 ^ (0.08) * f2 / f2")
-		isis.fx(f1_=dark2Cub, to_=darkCub, equation_="f1 - 0.004")
-		isis.fx(f1_=bright2Cub, to_=brightCub, equation_="f1 - 0.004")
-		os.system(str("/bin/rm " + addedCub))
-		os.system(str("/bin/rm " + dark2Cub))
-		os.system(str("/bin/rm " + bright2Cub))
-	elif exposureTime == 0.002:
-		isis.specpix(from_=mirrorCub, to_=nullCub, nullmin_=-1024, nullmax_=0.0000005)
-		isis.fx(f1_=nullCub, f2_=cal_flat_d, to_=darkCub, equation_="f1 * 1.01 * f1 ^ (-0.04) * f2 / f2")
-		isis.fx(f1_=nullCub, f2_=cal_flat_b, to_=brightCub, equation_="f1 * 0.99 * f1 ^ (0.04455) * f2 / f2")
-	isis.handmos(from_=darkCub, mosaic_=mirrorCub)
-	isis.handmos(from_=brightCub, mosaic_=mirrorCub)
-	os.system(str("/bin/rm " + nullCub))
-	os.system(str("/bin/rm " + darkCub))
-	os.system(str("/bin/rm " + brightCub))
-
-
-if instrumentMode == "I1":
-	isis.crop(from_=mirrorCub, to_=lbandCub, line_=1, nlines_=128)
-	isis.crop(from_=mirrorCub, to_=mbandCub, line_=129, nlines_=128)
-	isis.isis2ascii(from_=lbandCub, to_=lbandCsv, header_="no", delimiter_=delimiter, setpixelvalues="yes", nullvalue_=-1024, hrsvalue_=1)
-	lbandPanda = pd.read_csv(lbandCsv, header=None, dtype=float)
-	isis.isis2ascii(from_=mbandCub, to_=mbandCsv, header_="no", delimiter_=delimiter, setpixelvalues="yes", nullvalue_=-1024, hrsvalue_=1)
-	mbandPanda = pd.read_csv(mbandCsv, header=None, dtype=float)
-	print("Split PDS image into L-band and M-band images")
-elif instrumentMode == "I2":
-	mbandCub = mirrorCub
-	isis.isis2ascii(from_=mbandCub, to_=mbandCsv, header_="no", delimiter_=delimiter, setpixelvalues="yes", nullvalue_=-1024, hrsvalue_=1)
-	mbandPanda = pd.read_csv(mbandCsv, header=None, dtype=float)
-elif instrumentMode == "I3":
-	lbandCub = mirrorCub
-	isis.isis2ascii(from_=lbandCub, to_=lbandCsv, header_="no", delimiter_=delimiter, setpixelvalues="yes", nullvalue_=-1024, hrsvalue_=1)
-	lbandPanda = pd.read_csv(lbandCsv, header=None, dtype=float)
-
-
-# camera variables
-# dx = 0.000237767
-# dy = 0.000237767
-# [mshape, mframe, mbsight, mnbounds, mbounds] = spiceypy.getfov(mbandfrm, 20)
-# [lshape, lframe, lbsight, lnbounds, lbounds] = spiceypy.getfov(lbandfrm, 20)
+isis.isis2ascii(from_=magcube, to_=sruCsv, header_="no", delimiter_=delimiter, setpixelvalues="yes", nullvalue_=-1024, hrsvalue_=1)
+sruPanda = pd.read_csv(sruCsv, header=None, dtype=float)
 
 print("Setup Complete")
+
+[shape, frame, bsight, nbounds, bounds] = spiceypy.getfov(srufrm, 20)
+print(bounds)
 
 # loop for each pixel (one loop for Y axis, nested loop for X axis)
 for i in range(0,arrayLines):
@@ -484,113 +378,29 @@ for i in range(0,arrayLines):
 				emissionGood = True
 			else:
 				emissionGood = False
-
-			if instrumentMode == "I1":
-				if emissionGood:
-					X, Y = coordinates(lbandfrm, tarfrm, trgepc, etStart, srfvec, xOffset, yOffset)
-					if Y > 127 or Y < 0 or X > 431 or X < 0:
-						lbandVisible = False
-					else:
-						lbandVisible = True
-				else:
-					lbandVisible = False
-				if emissionGood and lbandVisible == False:
-					X, Y = coordinates(mbandfrm, tarfrm, trgepc, etStart, srfvec, xOffset, yOffset)
-					if Y > 127 or Y < 0 or X > 431 or X < 0:
-						mbandVisible = False
-					else:
-						mbandVisible = True
-				else:
-					mbandVisible = False
-			elif instrumentMode == "I2":
-				lbandVisible = False
-				if emissionGood:
-					X, Y = coordinates(mbandfrm, tarfrm, trgepc, etStart, srfvec, xOffset, yOffset)
-					if Y > 127 or Y < 0 or X > 431 or X < 0:
-						mbandVisible = False
-					else:
-						mbandVisible = True
-				else:
-					mbandVisible = False
-			elif instrumentMode == "I3":
-				if emissionGood:
-					X, Y = coordinates(lbandfrm, tarfrm, trgepc, etStart, srfvec, xOffset, yOffset)
-					if Y > 127 or Y < 0 or X > 431 or X < 0:
-						lbandVisible = False
-					else:
-						lbandVisible = True
-				else:
-					lbandVisible = False
 			
-			# paint pixel in ISIS cube pixel value from JIRAM image (or make CSV file?)
-			if mbandVisible:
-				if bandlimitation == "l":
-					mapPanda.values[i][j] = -1024
-				elif mbandPanda.values[Y][X] > safeLevel and saturation == "fill":
-					mapPanda.values[i][j] = safeLevel
-				elif mbandPanda.values[Y][X] > safeLevel and saturation == "null":
-					mapPanda.values[i][j] = -1024
+			if emissionGood:
+				X, Y = coordinates(srufrm, tarfrm, trgepc, etStart, srfvec, xOffset, yOffset)
+				if Y > 511 or Y < 0 or X > 511 or X < 0:
+					sruVisible = False
 				else:
-					if spectral:
-						# calculate values needed for band radiance to spectral radiance conversion
-						alt = spiceypy.vnorm( srfvec )
-						# calculate area of pixel
-						pixSize = alt * 0.237767
-						pixSize *= pixSize
-						# calculate spectral radiance
-						specRad = mbandPanda.values[Y][X]
-						# worlds worst photometric model
-						if bkgSubtract:
-							if inciddeg < 90:
-								bckgrnd = 0.0097 * math.cos(incdnc) + 0.0024
-							else:
-								bckgrnd = 0
-							specRad -= bckgrnd
-							specRad = specRad / 0.4975 * math.pi * pixSize / math.cos(emissn) / 1000000000
-						else:
-							specRad = specRad / 0.4975 * math.pi * pixSize / math.cos(emissn) / 1000000000
-						mapPanda.values[i][j] = specRad
-					else:
-						mapPanda.values[i][j] = mbandPanda.values[Y][X]
-			elif lbandVisible:
-				if bandlimitation == "m":
-					mapPanda.values[i][j] = -1024
-				elif lbandPanda.values[Y][X] > safeLevel and saturation == "fill":
-					mapPanda.values[i][j] = safeLevel
-				elif lbandPanda.values[Y][X] > safeLevel and saturation == "null":
-					mapPanda.values[i][j] = -1024
-				else:
-					if spectral:
-						# calculate values needed for band radiance to spectral radiance conversion
-						alt = spiceypy.vnorm( srfvec )
-						# calculate area of pixel
-						pixSize = alt * 0.237767
-						pixSize *= pixSize
-						# calculate spectral radiance
-						specRad = lbandPanda.values[Y][X]
-						# worlds worst photometric model
-						if bkgSubtract:
-							if inciddeg < 90:
-								bckgrnd = 0.0251 * math.cos(incdnc) + 0.0018
-							else:
-								bckgrnd = 0
-							specRad -= bckgrnd
-							specRad = specRad / 0.4975 * math.pi * pixSize / math.cos(emissn) / 1000000000
-						else:
-							specRad = specRad / 0.4975 * math.pi * pixSize / math.cos(emissn) / 1000000000
-						mapPanda.values[i][j] = specRad
-					else:
-						mapPanda.values[i][j] = lbandPanda.values[Y][X]
+					sruVisible = True
+			
+			
+			# paint pixel in ISIS cube pixel value from SRU image (or make CSV file?)
+			if sruVisible:
+				X *= scale
+				X = int(round(X,0))
+				Y *= scale
+				Y = int(round(Y,0))
+				mapPanda.values[i][j] = sruPanda.values[Y][X]
 			else:
 				mapPanda.values[i][j] = -1024
-				
+
 # Export CSV to ISIS image
 mapPanda.to_csv(reprojectCSV, index=False, header=False)
 # usually use nullmax_=0.00002 but for 55 use -0.0025
-if bkgSubtract:
-	isis.ascii2isis(from_=reprojectCSV, to_=reprojectedCub, order_="bsq", samples_=samples, lines_=lines, bands_=1, skip_=0, setnullrange_="true", nullmin_=-2000, nullmax_=-0.01)
-else:
-	isis.ascii2isis(from_=reprojectCSV, to_=reprojectedCub, order_="bsq", samples_=samples, lines_=lines, bands_=1, skip_=0, setnullrange_="true", nullmin_=-2000, nullmax_=-0.0026)
+isis.ascii2isis(from_=reprojectCSV, to_=reprojectedCub, order_="bsq", samples_=samples, lines_=lines, bands_=1, skip_=0, setnullrange_="true", nullmin_=-2000, nullmax_=-0.0026)
 
 # rotate if requested
 if rotation == "":
@@ -618,14 +428,11 @@ os.system(str("/bin/rm " + mapCSV))
 os.system(str("/bin/rm " + latitudeCub))
 os.system(str("/bin/rm " + latitudeCSV))
 os.system(str("/bin/rm " + longitudeCub))
+# os.system(str("/bin/rm " + magcube))
 os.system(str("/bin/rm " + longitudeCSV))
-os.system(str("/bin/rm " + imageCub))
-os.system(str("/bin/rm " + mirrorCub))
-os.system(str("/bin/rm " + mbandCsv))
+# os.system(str("/bin/rm " + imageCub))
+# os.system(str("/bin/rm " + trimcub))
+# os.system(str("/bin/rm " + sruCsv))
 os.system(str("/bin/rm " + reprojectCSV))
-if lBandavailable:
-	os.system(str("/bin/rm " + lbandCub))
-	os.system(str("/bin/rm " + lbandCsv))
-	os.system(str("/bin/rm " + mbandCub))
 if rotation != "":
 	os.system(str("/bin/rm " + rotatedCub))
