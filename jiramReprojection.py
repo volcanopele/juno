@@ -107,6 +107,8 @@ specfrm = -61420
 specnm = 'JUNO_JIRAM_S'
 cal_flat_b = '/Users/perry/Documents/scripts/juno/calibration/flat_1ms_bright.cub'
 cal_flat_d = '/Users/perry/Documents/scripts/juno/calibration/flat_1ms_dark.cub'
+cal_dark_1ms = '/Users/perry/Documents/scripts/juno/calibration/dark_1ms.cub'
+cal_dark_3ms = '/Users/perry/Documents/scripts/juno/calibration/dark_3ms.cub'
 
 # various parameters for the script
 method = 'Intercept/Ellipsoid'
@@ -169,6 +171,13 @@ def fileParse(inputs):
 			instrumentMode = instrumentModes[0]
 			instrumentModes = instrumentMode.split("_")
 			instrumentMode = instrumentModes[1]
+		elif 'PRODUCT_TYPE' in line:
+			productType = line
+			productTypes = productType.split(" ")
+			productTypes = sorted(productTypes, reverse=True)
+			productType = productTypes[1]
+			if productType == 'PRODUCT_TYPE':
+				productType = 'RDR'
 		elif 'EXPOSURE_DURATION' in line:
 			exposureTime = line
 			exposureTimes = exposureTime.split(" ")
@@ -184,7 +193,7 @@ def fileParse(inputs):
 	file.close()
 	
 	# tuple with image mid-time, product ID, and orbit output by function
-	return [et, productID, orbit, etStart, exposureTime, startTime, instrumentMode]
+	return [et, productID, orbit, etStart, exposureTime, startTime, instrumentMode, productType]
 
 def coordinates(frmcode, tarfrm, trgepc, etStart, srfvec, xOffset, yOffset):
 	[shape, frame, bsight, nbounds, bounds] = spiceypy.getfov(frmcode, 20)
@@ -222,6 +231,7 @@ saturation = "no"
 spectral = False
 bkgSubtract = False
 flatfield = False
+bgsubtract = False
 
 try:
 	opts, args = getopt.getopt(argv, 'i:m:x:y:z:b:s:spec:subtract:flat:', ['mapfile', 'infile'])
@@ -246,6 +256,8 @@ try:
 			bkgSubtract = True
 		if opt in ("-flat"):
 			flatfield = True
+		if opt in ("-bgsub"):
+			bgsubtract = True
 			
 except getopt.GetoptError:
 	print('jiramReprojection.py -m <mapfile> -i <infile>')
@@ -281,6 +293,7 @@ parseTuple = fileParse(jiramInput)
 etStart =  float(parseTuple[3])
 productID = parseTuple[1]
 instrumentMode = parseTuple[6]
+productType = parseTuple[7]
 orbit = int(parseTuple[2])
 if orbit >= 51:
 	etStart = etStart - 0.62
@@ -396,9 +409,32 @@ else:
 	print("Incorrect Image Mode")
 	sys.exit()
 
-isis.raw2isis(from_=imageImg, to_=imageCub, samples_=432, lines_=imgLines, bands_=1, bittype_="REAL")
-
+# isis.raw2isis(from_=imageImg, to_=imageCub, samples_=432, lines_=imgLines, bands_=1, bittype_="REAL")
+if productType == 'RDR':
+	isis.raw2isis(from_=imageImg, to_=imageCub, samples_=432, lines_=imgLines, bands_=1, bittype_="REAL")
+else:
+	isis.raw2isis(from_=imageImg, to_=imageCub, samples_=432, lines_=imgLines, bands_=1, bittype_="SIGNEDWORD")
+		
 isis.mirror(from_=imageCub, to_=mirrorCub)
+
+# EDRs need to have DN values converted to spectral radiance
+if productType == 'EDR':
+	itfCub = fileBase + '.itf.cub'
+	
+	if bgsubtract:
+		bgsubtractcube = fileBase + '.bgsubtact.cub'
+		if exposureTime == 0.001:
+			isis.fx(f1_=mirrorCub, f2_=cal_dark_1ms, to_=bgsubtractcube, equation_="f1 - f2")
+		elif exposureTime == 0.003:
+			isis.fx(f1_=mirrorCub, f2_=cal_dark_3ms, to_=bgsubtractcube, equation_="f1 - f2")
+		os.system(str("mv " + bgsubtractcube + " " + mirrorCub))
+	if exposureTime == 0.001:
+		isis.fx(f1_=mirrorCub, to_=itfCub, equation_="f1 / 2000")
+	elif exposureTime == 0.002:
+		isis.fx(f1_=mirrorCub, to_=itfCub, equation_="f1 / 4000")
+	elif exposureTime == 0.003:
+		isis.fx(f1_=mirrorCub, to_=itfCub, equation_="f1 / 6000")
+	os.system(str("mv " + itfCub + " " + mirrorCub))
 
 # low exposure times images have readout noise than be removed
 # This applies reciprocal corrections to bright and dark columns before mosaicking them back onto the mirrored image

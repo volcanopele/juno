@@ -100,6 +100,8 @@ specfrm = -61420
 specnm = 'JUNO_JIRAM_S'
 cal_flat_b = '/Users/perry/Documents/scripts/juno/calibration/flat_1ms_bright.cub'
 cal_flat_d = '/Users/perry/Documents/scripts/juno/calibration/flat_1ms_dark.cub'
+cal_dark_1ms = '/Users/perry/Documents/scripts/juno/calibration/dark_1ms.cub'
+cal_dark_3ms = '/Users/perry/Documents/scripts/juno/calibration/dark_3ms.cub'
 
 # various parameters for the script
 method = 'Intercept/Ellipsoid'
@@ -458,6 +460,7 @@ splitimages = False
 offsetCSV = False
 spectral = False
 flatfield = False
+bgsubtract = False
 for i in sys.argv:
 	if i == '-split':
 		splitimages = True
@@ -467,6 +470,8 @@ for i in sys.argv:
 		spectral = True
 	elif i == '-flat':
 		flatfield = True
+	elif i == '-bgsubtract':
+		bgsubtract = True
 
 ####################
 ### SCRIPT START ###
@@ -627,6 +632,25 @@ for file in inputFiles:
 		else:
 			mirrorCub = imageCub
 		
+		# EDRs need to have DN values converted to spectral radiance
+		if productType == 'EDR':
+			itfCub = fileBase + '.itf.cub'
+			
+			if bgsubtract:
+				bgsubtractcube = fileBase + '.bgsubtact.cub'
+				if exposureTime == 0.001:
+					isis.fx(f1_=mirrorCub, f2_=cal_dark_1ms, to_=bgsubtractcube, equation_="f1 - f2")
+				elif exposureTime == 0.003:
+					isis.fx(f1_=mirrorCub, f2_=cal_dark_3ms, to_=bgsubtractcube, equation_="f1 - f2")
+				os.system(str("mv " + bgsubtractcube + " " + mirrorCub))
+			if exposureTime == 0.001:
+				isis.fx(f1_=mirrorCub, to_=itfCub, equation_="f1 / 2000")
+			elif exposureTime == 0.002:
+				isis.fx(f1_=mirrorCub, to_=itfCub, equation_="f1 / 4000")
+			elif exposureTime == 0.003:
+				isis.fx(f1_=mirrorCub, to_=itfCub, equation_="f1 / 6000")
+			os.system(str("mv " + itfCub + " " + mirrorCub))
+			
 		# low exposure times images have readout noise than be removed
 		# This applies reciprocal corrections to bright and dark columns before mosaicking them back onto the mirrored image
 		# requires the -flat to be used
