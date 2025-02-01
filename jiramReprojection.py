@@ -8,6 +8,7 @@ import os, sys, getopt
 import kalasiris as isis
 import pandas as pd
 import numpy as np
+import argparse
 
 ####################
 ###### README ######
@@ -231,39 +232,42 @@ saturation = "no"
 spectral = False
 bkgSubtract = False
 flatfield = False
-bgsubtract = False
+darkcurrent = False
 
-try:
-	opts, args = getopt.getopt(argv, 'i:m:x:y:z:b:s:spec:subtract:flat:', ['mapfile', 'infile'])
-	for opt, arg in opts:
-		if opt in ("-m", "--mapfile"):
-			mapfile = arg
-		if opt in ("-i", "--infile"):
-			jiramInput = arg
-		if opt in ("-x"):
-			xOffset = float(arg)
-		if opt in ("-y"):
-			yOffset = float(arg)
-		if opt in ("-z"):
-			rotation = float(arg)
-		if opt in ("-b"):
-			bandlimitation = arg
-		if opt in ("-s"):
-			saturation = arg
-		if opt in ("-spec"):
-			spectral = True
-		if opt in ("-subtract"):
-			bkgSubtract = True
-		if opt in ("-flat"):
-			flatfield = True
-		if opt in ("-bgsub"):
-			bgsubtract = True
-			
-except getopt.GetoptError:
-	print('jiramReprojection.py -m <mapfile> -i <infile>')
-	sys.exit(2)
+parser = argparse.ArgumentParser(description='Optional app description')
 
-   
+parser.add_argument('-i', type=str, help='input img file')
+parser.add_argument('-m', type=str, help='optional mapfile')
+parser.add_argument('-x', type=float, help='xoffset')
+parser.add_argument('-y', type=float, help='xoffset')
+parser.add_argument('-z', type=float, help='rotation')
+parser.add_argument('-s', type=float, help='saturationlevel')
+parser.add_argument('-b', type=str, help='limit to m or l band')
+parser.add_argument('-spec', action='store_true', help='spectral radiance conversion')
+parser.add_argument('-subtract', action='store_true', help='subtract background level')
+parser.add_argument('-flat', action='store_true', help='flatfield subtraction')
+parser.add_argument('-dark', action='store_true', help='dark current subtraction')
+
+args = parser.parse_args()
+
+jiramInput = args.i
+mapfile = args.m
+xOffset = args.x
+yOffset = args.y
+rotation = args.z
+bandlimitation = args.b
+saturation = args.s
+
+if args.spec:
+	spectral = True
+if args.subtract:
+	bkgSubtract = True
+if args.flat:
+	flatfield = True
+if args.dark:
+	darkcurrent = True
+
+
 ####################
 ### SCRIPT START ###
 ####################
@@ -421,7 +425,7 @@ isis.mirror(from_=imageCub, to_=mirrorCub)
 if productType == 'EDR':
 	itfCub = fileBase + '.itf.cub'
 	
-	if bgsubtract:
+	if darkcurrent:
 		bgsubtractcube = fileBase + '.bgsubtact.cub'
 		if exposureTime == 0.001:
 			isis.fx(f1_=mirrorCub, f2_=cal_dark_1ms, to_=bgsubtractcube, equation_="f1 - f2")
@@ -463,7 +467,7 @@ if flatfield:
 		os.system(str("/bin/rm " + addedCub))
 		os.system(str("/bin/rm " + dark2Cub))
 		os.system(str("/bin/rm " + bright2Cub))
-	elif exposureTime == 0.002:
+	elif exposureTime == 0.002 or exposureTime == 0.003:
 		isis.specpix(from_=mirrorCub, to_=nullCub, nullmin_=-1024, nullmax_=0.0000005)
 		isis.fx(f1_=nullCub, f2_=cal_flat_d, to_=darkCub, equation_="f1 * 1.01 * f1 ^ (-0.04) * f2 / f2")
 		isis.fx(f1_=nullCub, f2_=cal_flat_b, to_=brightCub, equation_="f1 * 0.99 * f1 ^ (0.04455) * f2 / f2")
@@ -482,6 +486,10 @@ if instrumentMode == "I1":
 	isis.isis2ascii(from_=mbandCub, to_=mbandCsv, header_="no", delimiter_=delimiter, setpixelvalues="yes", nullvalue_=-1024, hrsvalue_=1)
 	mbandPanda = pd.read_csv(mbandCsv, header=None, dtype=float)
 	print("Split PDS image into L-band and M-band images")
+	if bandlimitation == 'm':
+		print("Only processing M-band")
+	elif bandlimitation == 'l':
+		print("Only processing L-band")
 elif instrumentMode == "I2":
 	mbandCub = mirrorCub
 	isis.isis2ascii(from_=mbandCub, to_=mbandCsv, header_="no", delimiter_=delimiter, setpixelvalues="yes", nullvalue_=-1024, hrsvalue_=1)
