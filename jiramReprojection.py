@@ -226,7 +226,7 @@ jiramInput = ''
 rotation = ''
 xOffset = 0
 yOffset = 0
-argv = sys.argv[1:]
+
 bandlimitation = "all"
 saturation = "no"
 spectral = False
@@ -251,7 +251,10 @@ parser.add_argument('-dark', action='store_true', help='dark current subtraction
 args = parser.parse_args()
 
 jiramInput = args.i
-mapfile = args.m
+if args.m != None:
+	mapfile = args.m
+else:
+	mapfile = ""
 xOffset = args.x
 yOffset = args.y
 rotation = args.z
