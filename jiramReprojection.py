@@ -429,6 +429,7 @@ if productType == 'EDR':
 	itfCub = fileBase + '.itf.cub'
 	
 	if darkcurrent:
+		print("Performing background subtraction")
 		bgsubtractcube = fileBase + '.bgsubtact.cub'
 		if exposureTime == 0.001:
 			isis.fx(f1_=mirrorCub, f2_=cal_dark_1ms, to_=bgsubtractcube, equation_="f1 - f2")
@@ -456,10 +457,14 @@ if flatfield:
 	addedCub = fileBase + '.added.cub'
 	dark2Cub = fileBase + '.dark2.cub'
 	bright2Cub = fileBase + '.bright2.cub'
-	if exposureTime == 0.001:
+	if exposureTime == 0.001 and orbit < 58:
 		isis.specpix(from_=mirrorCub, to_=nullCub, nullmin_=-1024, nullmax_=0.0000005)
 		isis.fx(f1_=nullCub, f2_=cal_flat_d, to_=darkCub, equation_="f1 * 1.018 * f1 ^ (-0.08) * f2 / f2")
 		isis.fx(f1_=nullCub, f2_=cal_flat_b, to_=brightCub, equation_="f1 * 0.9686 * f1 ^ (0.0891) * f2 / f2")
+	elif exposureTime == 0.001 and orbit >= 58:
+		isis.specpix(from_=mirrorCub, to_=nullCub, nullmin_=-1024, nullmax_=0.0000005)
+		isis.fx(f1_=nullCub, f2_=cal_flat_d, to_=darkCub, equation_="f1 * 1.01 * f1 ^ (-0.04) * f2 / f2")
+		isis.fx(f1_=nullCub, f2_=cal_flat_b, to_=brightCub, equation_="f1 * 0.99 * f1 ^ (0.04455) * f2 / f2")
 	elif exposureTime == 0.002 and orbit == 58:
 		isis.fx(f1_=mirrorCub, to_=addedCub, equation_="f1 + 0.004")
 		isis.specpix(from_=addedCub, to_=nullCub, nullmin_=-1024, nullmax_=0.0000005)
@@ -471,6 +476,7 @@ if flatfield:
 		os.system(str("/bin/rm " + dark2Cub))
 		os.system(str("/bin/rm " + bright2Cub))
 	elif exposureTime == 0.002 or exposureTime == 0.003:
+		print("exposure time is 0.001 branch")
 		isis.specpix(from_=mirrorCub, to_=nullCub, nullmin_=-1024, nullmax_=0.0000005)
 		isis.fx(f1_=nullCub, f2_=cal_flat_d, to_=darkCub, equation_="f1 * 1.01 * f1 ^ (-0.04) * f2 / f2")
 		isis.fx(f1_=nullCub, f2_=cal_flat_b, to_=brightCub, equation_="f1 * 0.99 * f1 ^ (0.04455) * f2 / f2")
