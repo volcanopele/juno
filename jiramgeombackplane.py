@@ -56,6 +56,12 @@ import kalasiris as isis
 
 # python jiramgeombackplane.py -offset 
 
+# some edrs need background removal to be performed or else sever bright-dark 
+# will be apparent. To remove these, use dark current subtract by applying the
+# -dark flag
+
+# python jiramgeombackplane.py -dark 
+
 # REMEMBER TO EDIT THE metakr VARIABLE in LINE 83 TO MATCH THE FULL PATH TO 
 # YOUR JUNO METAKERNEL
 
@@ -64,7 +70,7 @@ import kalasiris as isis
 ###### LICENSE AND COPYRIGHT ######
 ###################################
 
-# Copyright (C) 2022 Arizona Board of Regents on behalf of the Planetary
+# Copyright (C) 2022–2025 Arizona Board of Regents on behalf of the Planetary
 # Image Research Laboratory, Lunar and Planetary Laboratory at the
 # University of Arizona.
 #
@@ -98,10 +104,11 @@ mbandfrm = -61412
 mbndnm = 'JUNO_JIRAM_I_MBAND'
 specfrm = -61420
 specnm = 'JUNO_JIRAM_S'
-cal_flat_b = '/Users/perry/Documents/scripts/juno/calibration/flat_1ms_bright.cub'
-cal_flat_d = '/Users/perry/Documents/scripts/juno/calibration/flat_1ms_dark.cub'
-cal_dark_1ms = '/Users/perry/Documents/scripts/juno/calibration/dark_1ms.cub'
-cal_dark_3ms = '/Users/perry/Documents/scripts/juno/calibration/dark_3ms.cub'
+scriptdir = sys.path[0]
+cal_flat_b = scriptdir + '/calibration/flat_1ms_bright.cub'
+cal_flat_d = scriptdir + '/calibration/flat_1ms_dark.cub'
+cal_dark_1ms = scriptdir + '/calibration/dark_1ms.cub'
+cal_dark_3ms = scriptdir + '/calibration/dark_3ms.cub'
 
 # various parameters for the script
 method = 'Intercept/Ellipsoid'
@@ -460,7 +467,7 @@ splitimages = False
 offsetCSV = False
 spectral = False
 flatfield = False
-bgsubtract = False
+dark = False
 for i in sys.argv:
 	if i == '-split':
 		splitimages = True
@@ -470,8 +477,8 @@ for i in sys.argv:
 		spectral = True
 	elif i == '-flat':
 		flatfield = True
-	elif i == '-bgsubtract':
-		bgsubtract = True
+	elif i == '-dark':
+		dark = True
 
 ####################
 ### SCRIPT START ###
@@ -636,7 +643,7 @@ for file in inputFiles:
 		if productType == 'EDR':
 			itfCub = fileBase + '.itf.cub'
 			
-			if bgsubtract:
+			if dark:
 				bgsubtractcube = fileBase + '.bgsubtact.cub'
 				if exposureTime == 0.001:
 					isis.fx(f1_=mirrorCub, f2_=cal_dark_1ms, to_=bgsubtractcube, equation_="f1 - f2")
@@ -661,10 +668,14 @@ for file in inputFiles:
 			addedCub = fileBase + '.added.cub'
 			dark2Cub = fileBase + '.dark2.cub'
 			bright2Cub = fileBase + '.bright2.cub'
-			if exposureTime == 0.001:
+			if exposureTime == 0.001 and orbit < 58:
 				isis.specpix(from_=mirrorCub, to_=nullCub, nullmin_=-1024, nullmax_=0.0000005)
 				isis.fx(f1_=nullCub, f2_=cal_flat_d, to_=darkCub, equation_="f1 * 1.018 * f1 ^ (-0.08) * f2 / f2")
 				isis.fx(f1_=nullCub, f2_=cal_flat_b, to_=brightCub, equation_="f1 * 0.9686 * f1 ^ (0.0891) * f2 / f2")
+			elif exposureTime == 0.001 and orbit >= 58:
+				isis.specpix(from_=mirrorCub, to_=nullCub, nullmin_=-1024, nullmax_=0.0000005)
+				isis.fx(f1_=nullCub, f2_=cal_flat_d, to_=darkCub, equation_="f1 * 1.01 * f1 ^ (-0.04) * f2 / f2")
+				isis.fx(f1_=nullCub, f2_=cal_flat_b, to_=brightCub, equation_="f1 * 0.99 * f1 ^ (0.04455) * f2 / f2")
 			elif exposureTime == 0.002 and orbit == 58:
 				isis.fx(f1_=mirrorCub, to_=addedCub, equation_="f1 + 0.004")
 				isis.specpix(from_=addedCub, to_=nullCub, nullmin_=-1024, nullmax_=0.0000005)

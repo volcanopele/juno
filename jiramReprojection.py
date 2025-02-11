@@ -476,7 +476,6 @@ if flatfield:
 		os.system(str("/bin/rm " + dark2Cub))
 		os.system(str("/bin/rm " + bright2Cub))
 	elif exposureTime == 0.002 or exposureTime == 0.003:
-		print("exposure time is 0.001 branch")
 		isis.specpix(from_=mirrorCub, to_=nullCub, nullmin_=-1024, nullmax_=0.0000005)
 		isis.fx(f1_=nullCub, f2_=cal_flat_d, to_=darkCub, equation_="f1 * 1.01 * f1 ^ (-0.04) * f2 / f2")
 		isis.fx(f1_=nullCub, f2_=cal_flat_b, to_=brightCub, equation_="f1 * 0.99 * f1 ^ (0.04455) * f2 / f2")
@@ -641,9 +640,12 @@ for i in range(0,arrayLines):
 mapPanda.to_csv(reprojectCSV, index=False, header=False)
 # usually use nullmax_=0.00002 but for 55 use -0.0025
 if bkgSubtract:
-	isis.ascii2isis(from_=reprojectCSV, to_=reprojectedCub, order_="bsq", samples_=samples, lines_=lines, bands_=1, skip_=0, setnullrange_="true", nullmin_=-2000, nullmax_=-0.01)
+	isis.ascii2isis(from_=reprojectCSV, to_=reprojectedCub, order_="bsq", samples_=samples, lines_=lines, bands_=1, skip_=0, setnullrange_="true", nullmin_=-2000, nullmax_=-0.003)
+elif darkcurrent and exposureTime == 0.001:
+	# -.0009 for PJ62 JRM_008, 010, and 012. -0.0025 for 006
+	isis.ascii2isis(from_=reprojectCSV, to_=reprojectedCub, order_="bsq", samples_=samples, lines_=lines, bands_=1, skip_=0, setnullrange_="true", nullmin_=-2000, nullmax_=-0.003)
 else:
-	isis.ascii2isis(from_=reprojectCSV, to_=reprojectedCub, order_="bsq", samples_=samples, lines_=lines, bands_=1, skip_=0, setnullrange_="true", nullmin_=-2000, nullmax_=-0.0026)
+	isis.ascii2isis(from_=reprojectCSV, to_=reprojectedCub, order_="bsq", samples_=samples, lines_=lines, bands_=1, skip_=0, setnullrange_="true", nullmin_=-2000, nullmax_=-0.0025)
 
 # rotate if requested
 if rotation == "":
