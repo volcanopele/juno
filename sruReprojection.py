@@ -199,9 +199,12 @@ def coordinates(frmcode, tarfrm, trgepc, etStart, srfvec, xOffset, yOffset):
 	xformvec[1] = xformvec[1] / ratio * -1
 	xformvec[2] = xformvec[2] / ratio * -1
 	
-	X = xformvec[1] * 1760.21137 + 255.5
+	focallength = 1760.21137
+	focallength = 1730.21137
+	
+	X = xformvec[1] * focallength + 255.5
 	X += xOffset
-	Y = xformvec[2] * 1760.21137 + 255.5
+	Y = xformvec[2] * focallength + 255.5
 	Y += yOffset
 	
 	return X, Y
@@ -222,9 +225,10 @@ saturation = "no"
 spectral = False
 bkgSubtract = False
 flatfield = False
+timeoffset = 0
 
 try:
-	opts, args = getopt.getopt(argv, 'i:m:x:y:z:', ['mapfile', 'infile'])
+	opts, args = getopt.getopt(argv, 'i:m:x:y:z:t:', ['mapfile', 'infile'])
 	for opt, arg in opts:
 		if opt in ("-m", "--mapfile"):
 			mapfile = arg
@@ -236,6 +240,8 @@ try:
 			yOffset = float(arg)
 		if opt in ("-z"):
 			rotation = float(arg)
+		if opt in ("-t"):
+			timeoffset = float(arg)
 			
 except getopt.GetoptError:
 	print('sruReprojection.py -m <mapfile> -i <infile>')
@@ -272,6 +278,9 @@ etStart =  float(parseTuple[3])
 productID = parseTuple[1]
 orbit = int(parseTuple[2])
 exposureTime = float(parseTuple[4])
+
+# apply time offset 
+etStart += timeoffset
 
 # setup paths
 root = os.path.dirname(sruInput)
@@ -333,6 +342,7 @@ longitudeCSV = fileBase + '.longitude.txt'
 reprojectCSV = fileBase + '.reprojected.csv'
 reprojectedCub = fileBase + '.reprojected.cub'
 
+
 # create basemap image array
 isis.isis2ascii(from_=mapCub, to_=mapCSV, header_="no", delimiter_=delimiter, setpixelvalues="yes", nullvalue_=-1024, hrsvalue_=1, lrsvalue_=0)
 mapPanda = pd.read_csv(mapCSV, header=None, dtype=float)
@@ -385,10 +395,16 @@ for i in range(0,arrayLines):
 					sruVisible = False
 				else:
 					sruVisible = True
+			else:
+				sruVisible = False
 			
 			
 			# paint pixel in ISIS cube pixel value from SRU image (or make CSV file?)
 			if sruVisible:
+				if rotation != "":
+					# affine transformation of pixel values to account for twist angle
+					X = math.cos(math.radians(rotation)) * X + math.sin(math.radians(rotation)) * Y
+					Y = math.cos(math.radians(rotation)) * Y - math.sin(math.radians(rotation)) * X
 				X *= scale
 				X = int(round(X,0))
 				Y *= scale
@@ -401,20 +417,21 @@ for i in range(0,arrayLines):
 mapPanda.to_csv(reprojectCSV, index=False, header=False)
 # usually use nullmax_=0.00002 but for 55 use -0.0025
 isis.ascii2isis(from_=reprojectCSV, to_=reprojectedCub, order_="bsq", samples_=samples, lines_=lines, bands_=1, skip_=0, setnullrange_="true", nullmin_=-2000, nullmax_=-0.0026)
+isis.copylabel(from_=reprojectedCub, source_=mapCub, mapping="true")
 
 # rotate if requested
-if rotation == "":
-	isis.copylabel(from_=reprojectedCub, source_=mapCub, mapping="true")
-else:
-	rotatedCub = fileBase + '.rotate.cub'
-	croppedCub = fileBase + '.crop.cub'
-	isis.rotate(from_=reprojectedCub, to_=rotatedCub, degrees=rotation, interp="NEARESTNEIGHBOR")
-	newsize = int(isis.getkey(from_=rotatedCub, grpname_="Dimensions", objname_="Core", keyword_="Samples").stdout)
-	starting = newsize - samples
-	starting /= 2
-	starting += 1
-	isis.crop(from_=rotatedCub, to=croppedCub, samp_=int(starting), line_=int(starting), nsamp_=samples, nline_=lines)
-	isis.copylabel(from_=croppedCub, source_=mapCub, mapping="true")
+# if rotation == "":
+# 	isis.copylabel(from_=reprojectedCub, source_=mapCub, mapping="true")
+# else:
+# 	rotatedCub = fileBase + '.rotate.cub'
+# 	croppedCub = fileBase + '.crop.cub'
+# 	isis.rotate(from_=reprojectedCub, to_=rotatedCub, degrees=rotation, interp="NEARESTNEIGHBOR")
+# 	newsize = int(isis.getkey(from_=rotatedCub, grpname_="Dimensions", objname_="Core", keyword_="Samples").stdout)
+# 	starting = newsize - samples
+# 	starting /= 2
+# 	starting += 1
+# 	isis.crop(from_=rotatedCub, to=croppedCub, samp_=int(starting), line_=int(starting), nsamp_=samples, nline_=lines)
+# 	isis.copylabel(from_=croppedCub, source_=mapCub, mapping="true")
 
 
 #############################
@@ -434,5 +451,5 @@ os.system(str("/bin/rm " + longitudeCSV))
 # os.system(str("/bin/rm " + trimcub))
 # os.system(str("/bin/rm " + sruCsv))
 os.system(str("/bin/rm " + reprojectCSV))
-if rotation != "":
-	os.system(str("/bin/rm " + rotatedCub))
+# if rotation != "":
+# 	os.system(str("/bin/rm " + rotatedCub))

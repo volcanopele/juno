@@ -30,18 +30,15 @@ step = 4800
 backgd = "Io_GalileoSSI-Voyager_Global_Mosaic_2km_180W.jpg"
 backgd = "New_Io_photomosaic_2km_grey.jpg"
 
-file = '/Users/perry/Dropbox/Io/Juno/max_brightness.csv'
+file = '/Volumes/SamsungT9/scratch/Ionetwork/Io_PJ57_58.js_bundleout_points.csv'
 
-csvarray = pd.read_csv(file, delimiter=',')
-hotspots = [tuple(row) for row in csvarray.values]
+csvarray = pd.read_csv(file, delimiter=',', header=[0,2])
+points = [tuple(row) for row in csvarray.values]
 
-latitude, longitude, value = zip(*hotspots)
+label, status, acceptMeasure, rejectMeasure, residual, latitude, longitude, radius, corrLat, corrLon, corrRad, X, Y, Z = zip(*points)
 
-perijove = csvarray.columns.values
-perijove = perijove[2]
-
-sizevalues = np.multiply(value, 100)
-sizevalues = np.add(sizevalues, 10)
+longitude = [x-360 for x in longitude]
+longitude = [x/-1 for x in longitude]
 
 # creates graph of the ground plots for all encounters
 # load map as background image
@@ -58,15 +55,12 @@ ax.imshow(img, extent=[360, 0, -90, 90])
 # sets color gradient to use in scatter plot
 cmap = plt.get_cmap('inferno')
 
-plt.scatter(longitude, latitude, c = value, s = 100, cmap = cmap, edgecolor='black', norm=matplotlib.colors.LogNorm(vmax=70.0, vmin=0.02), alpha=0.9)
-# plt.scatter(longitude, latitude, c = value, s = sizevalues, cmap = cmap, edgecolor='black', norm=matplotlib.colors.LogNorm(), alpha=0.8)
-# plt.scatter(longitude, latitude, c = value, s = 100, cmap = cmap, edgecolor='black', norm=matplotlib.colors.LogNorm(), alpha=0.8)
+plt.scatter(longitude, latitude, c = corrRad, s = 2, cmap = cmap, alpha=0.9)
 
 # sets graph labels
 ax.set_xlabel('Longitude (°W)', fontsize=25)
 ax.set_ylabel('Latitude', fontsize=25)
-# ax.set_title('Io Hotspots seen by Juno - ' + perijove)
-ax.set_title('Io Hotspots seen by Juno - ' + '2017 – 2024 (Maximum Unsaturated Brightness)', fontsize=30, pad=20)
+ax.set_title('Control Points by height', fontsize=30, pad=20)
 ax.set_yticks([-90, -60, -30, 0, 30, 60, 90], minor = False)
 ax.set_yticks([-75, -45, -15, 15, 45, 75], minor = True)
 ax.set_xticks([0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330, 360], minor = False)
@@ -79,9 +73,9 @@ plt.xticks(fontsize=20)
 mappable = ax.collections[0]
 cbar = plt.colorbar(mappable=mappable, shrink=0.75)
 cbar.ax.tick_params(labelsize=20)
-cbar.set_label('M-band spectral radiance, GW/µm', labelpad=+3, fontsize=25)
+cbar.set_label('Point Height (m)', labelpad=+3, fontsize=25)
 
 
-plt.savefig('io_hotspots.png',dpi=150, format='png')
+plt.savefig('io_topography.png',dpi=150, format='png')
 
 plt.show()
