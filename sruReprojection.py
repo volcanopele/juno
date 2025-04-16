@@ -200,7 +200,6 @@ def coordinates(frmcode, tarfrm, trgepc, etStart, srfvec, xOffset, yOffset):
 	xformvec[2] = xformvec[2] / ratio * -1
 	
 	focallength = 1760.21137
-	focallength = 1730.21137
 	
 	X = xformvec[1] * focallength + 255.5
 	X += xOffset
@@ -449,7 +448,7 @@ os.system(str("/bin/rm " + longitudeCub))
 os.system(str("/bin/rm " + longitudeCSV))
 # os.system(str("/bin/rm " + imageCub))
 # os.system(str("/bin/rm " + trimcub))
-# os.system(str("/bin/rm " + sruCsv))
+os.system(str("/bin/rm " + sruCsv))
 os.system(str("/bin/rm " + reprojectCSV))
 # if rotation != "":
 # 	os.system(str("/bin/rm " + rotatedCub))

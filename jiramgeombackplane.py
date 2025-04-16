@@ -108,6 +108,7 @@ scriptdir = sys.path[0]
 cal_flat_b = scriptdir + '/calibration/flat_1ms_bright.cub'
 cal_flat_d = scriptdir + '/calibration/flat_1ms_dark.cub'
 cal_dark_1ms = scriptdir + '/calibration/dark_1ms.cub'
+cal_dark_2ms = scriptdir + '/calibration/dark_2ms.cub'
 cal_dark_3ms = scriptdir + '/calibration/dark_3ms.cub'
 
 # various parameters for the script
@@ -642,11 +643,12 @@ for file in inputFiles:
 		# EDRs need to have DN values converted to spectral radiance
 		if productType == 'EDR':
 			itfCub = fileBase + '.itf.cub'
-			
 			if dark:
 				bgsubtractcube = fileBase + '.bgsubtact.cub'
 				if exposureTime == 0.001:
 					isis.fx(f1_=mirrorCub, f2_=cal_dark_1ms, to_=bgsubtractcube, equation_="f1 - f2")
+				elif exposureTime == 0.002:
+					isis.fx(f1_=mirrorCub, f2_=cal_dark_2ms, to_=bgsubtractcube, equation_="f1 - f2")
 				elif exposureTime == 0.003:
 					isis.fx(f1_=mirrorCub, f2_=cal_dark_3ms, to_=bgsubtractcube, equation_="f1 - f2")
 				os.system(str("mv " + bgsubtractcube + " " + mirrorCub))
@@ -686,7 +688,8 @@ for file in inputFiles:
 				os.system(str("/bin/rm " + addedCub))
 				os.system(str("/bin/rm " + dark2Cub))
 				os.system(str("/bin/rm " + bright2Cub))
-			elif exposureTime == 0.002:
+			elif exposureTime == 0.002 or exposureTime == 0.003:
+				print("Performing flat field subtraction")
 				isis.specpix(from_=mirrorCub, to_=nullCub, nullmin_=-1024, nullmax_=0.0000005)
 				isis.fx(f1_=nullCub, f2_=cal_flat_d, to_=darkCub, equation_="f1 * 1.01 * f1 ^ (-0.04) * f2 / f2")
 				isis.fx(f1_=nullCub, f2_=cal_flat_b, to_=brightCub, equation_="f1 * 0.99 * f1 ^ (0.04455) * f2 / f2")

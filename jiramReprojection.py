@@ -106,10 +106,12 @@ mbandfrm = -61412
 mbndnm = 'JUNO_JIRAM_I_MBAND'
 specfrm = -61420
 specnm = 'JUNO_JIRAM_S'
-cal_flat_b = '/Users/perry/Documents/scripts/juno/calibration/flat_1ms_bright.cub'
-cal_flat_d = '/Users/perry/Documents/scripts/juno/calibration/flat_1ms_dark.cub'
-cal_dark_1ms = '/Users/perry/Documents/scripts/juno/calibration/dark_1ms.cub'
-cal_dark_3ms = '/Users/perry/Documents/scripts/juno/calibration/dark_3ms.cub'
+scriptdir = sys.path[0]
+cal_flat_b = scriptdir + '/calibration/flat_1ms_bright.cub'
+cal_flat_d = scriptdir + '/calibration/flat_1ms_dark.cub'
+cal_dark_1ms = scriptdir + '/calibration/dark_1ms.cub'
+cal_dark_2ms = scriptdir + '/calibration/dark_2ms.cub'
+cal_dark_3ms = scriptdir + '/calibration/dark_3ms.cub'
 
 # various parameters for the script
 method = 'Intercept/Ellipsoid'
@@ -341,7 +343,7 @@ else:
 	res = alt * 0.237767
 	if orbit == 41 or orbit == 43 or orbit == 47:
 		magnify = 5
-	elif orbit == 49 or orbit == 51 or orbit == 53 or orbit == 55 or orbit == 60 or orbit == 62:
+	elif orbit == 49 or orbit == 51 or orbit == 53 or orbit == 55 or orbit == 60 or orbit == 62 or orbit == 64:
 		magnify = 2
 	elif orbit == 57 or orbit == 58:
 		magnify = 1
@@ -427,12 +429,13 @@ isis.mirror(from_=imageCub, to_=mirrorCub)
 # EDRs need to have DN values converted to spectral radiance
 if productType == 'EDR':
 	itfCub = fileBase + '.itf.cub'
-	
 	if darkcurrent:
 		print("Performing background subtraction")
 		bgsubtractcube = fileBase + '.bgsubtact.cub'
 		if exposureTime == 0.001:
 			isis.fx(f1_=mirrorCub, f2_=cal_dark_1ms, to_=bgsubtractcube, equation_="f1 - f2")
+		elif exposureTime == 0.002:
+			isis.fx(f1_=mirrorCub, f2_=cal_dark_2ms, to_=bgsubtractcube, equation_="f1 - f2")
 		elif exposureTime == 0.003:
 			isis.fx(f1_=mirrorCub, f2_=cal_dark_3ms, to_=bgsubtractcube, equation_="f1 - f2")
 		os.system(str("mv " + bgsubtractcube + " " + mirrorCub))
@@ -645,7 +648,7 @@ elif darkcurrent and exposureTime == 0.001:
 	# -.0009 for PJ62 JRM_008, 010, and 012. -0.0025 for 006
 	isis.ascii2isis(from_=reprojectCSV, to_=reprojectedCub, order_="bsq", samples_=samples, lines_=lines, bands_=1, skip_=0, setnullrange_="true", nullmin_=-2000, nullmax_=-0.003)
 else:
-	isis.ascii2isis(from_=reprojectCSV, to_=reprojectedCub, order_="bsq", samples_=samples, lines_=lines, bands_=1, skip_=0, setnullrange_="true", nullmin_=-2000, nullmax_=-0.0025)
+	isis.ascii2isis(from_=reprojectCSV, to_=reprojectedCub, order_="bsq", samples_=samples, lines_=lines, bands_=1, skip_=0, setnullrange_="true", nullmin_=-2000, nullmax_=-0.004)
 
 # rotate if requested
 if rotation == "":
