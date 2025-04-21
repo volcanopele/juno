@@ -689,7 +689,6 @@ for file in inputFiles:
 				os.system(str("/bin/rm " + dark2Cub))
 				os.system(str("/bin/rm " + bright2Cub))
 			elif exposureTime == 0.002 or exposureTime == 0.003:
-				print("Performing flat field subtraction")
 				isis.specpix(from_=mirrorCub, to_=nullCub, nullmin_=-1024, nullmax_=0.0000005)
 				isis.fx(f1_=nullCub, f2_=cal_flat_d, to_=darkCub, equation_="f1 * 1.01 * f1 ^ (-0.04) * f2 / f2")
 				isis.fx(f1_=nullCub, f2_=cal_flat_b, to_=brightCub, equation_="f1 * 0.99 * f1 ^ (0.04455) * f2 / f2")
@@ -767,9 +766,8 @@ for file in inputFiles:
 		elif splitimages == False:
 			toCSV = fileBase + '.csv'
 			isis.isis2ascii(from_=mirrorCub, to_=toCSV, header_="no", delimiter_=",", setpixelvalues="yes", nullvalue_=-1024, hrsvalue_=1)
-			os.system(str("mv " + toCSV + ".txt " + toCSV))
-		
-		
+			os.system(str("mv " + toCSV + ".txt " + toCSV))		
+
 		# generate cubes files for each backplane using the backplanecubegen function
 		latitudeCube = backplanecubegen("latitude", "Latitude")
 		longitudeCube = backplanecubegen("longitude", "Longitude")
