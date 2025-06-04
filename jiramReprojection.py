@@ -65,7 +65,7 @@ import argparse
 ###### LICENSE AND COPYRIGHT ######
 ###################################
 
-# Copyright (C) 2022 Arizona Board of Regents on behalf of the Planetary
+# Copyright (C) 2022-2025 Arizona Board of Regents on behalf of the Planetary
 # Image Research Laboratory, Lunar and Planetary Laboratory at the
 # University of Arizona.
 #
