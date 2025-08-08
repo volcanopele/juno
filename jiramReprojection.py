@@ -141,6 +141,8 @@ def fileParse(inputs):
 	# time, product ID, and orbit number. If found, the loop will parse the line by
 	# split it by spaces then sorts the resulting array so that the value we need 
 	# is at a consistent position.
+	exposureTime = 0
+	
 	for line in datafile:
 		if 'SPACECRAFT_CLOCK_START_COUNT' in line:
 			startTime = line
@@ -194,6 +196,9 @@ def fileParse(inputs):
 	
 	# close file
 	file.close()
+	
+	if exposureTime == 0:
+		exposureTime = etStop - etStart
 	
 	# tuple with image mid-time, product ID, and orbit output by function
 	return [et, productID, orbit, etStart, exposureTime, startTime, instrumentMode, productType]
