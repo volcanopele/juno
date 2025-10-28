@@ -29,6 +29,7 @@ stepsz = 1.0
 step = 4800
 backgd = "Io_GalileoSSI-Voyager_Global_Mosaic_2km_180W.jpg"
 backgd = "New_Io_photomosaic_2km_grey.jpg"
+backgd = "/Users/perry/Dropbox/Io/Juno/publications/Paper5_Menagerie2/map/PJ60_coverage_map.jpg"
 
 file = '/Users/perry/Dropbox/Io/Juno/max_brightness.csv'
 
@@ -58,26 +59,28 @@ ax.imshow(img, extent=[360, 0, -90, 90])
 # sets color gradient to use in scatter plot
 cmap = plt.get_cmap('inferno')
 
-plt.scatter(longitude, latitude, c = value, s = 100, cmap = cmap, edgecolor='black', norm=matplotlib.colors.LogNorm(vmax=70.0, vmin=0.02), alpha=0.9)
+plt.scatter(longitude, latitude, c = value, s = 200, cmap = cmap, edgecolor='black', norm=matplotlib.colors.LogNorm(vmax=70.0, vmin=0.02), alpha=0.9)
 # plt.scatter(longitude, latitude, c = value, s = sizevalues, cmap = cmap, edgecolor='black', norm=matplotlib.colors.LogNorm(), alpha=0.8)
 # plt.scatter(longitude, latitude, c = value, s = 100, cmap = cmap, edgecolor='black', norm=matplotlib.colors.LogNorm(), alpha=0.8)
 
 # sets graph labels
-ax.set_xlabel('Longitude (°W)', fontsize=25)
-ax.set_ylabel('Latitude', fontsize=25)
-# ax.set_title('Io Hotspots seen by Juno - ' + perijove)
-ax.set_title('Io Hotspots seen by Juno - ' + '2017 – 2024 (Maximum Unsaturated Brightness)', fontsize=30, pad=20)
+ax.set_xlabel('Longitude (°W)', fontsize=17)
+ax.set_ylabel('Latitude', fontsize=17)
+# ax.set_title('Io Hotspots seen by Juno - ' + perijove, fontsize=20, pad=10)
+ax.set_title(perijove, fontsize=20, pad=10)
+# ax.set_title('Io Hotspots seen by Juno - ' + '2017 – 2024 (Maximum Unsaturated Brightness)', fontsize=30, pad=20)
 ax.set_yticks([-90, -60, -30, 0, 30, 60, 90], minor = False)
 ax.set_yticks([-75, -45, -15, 15, 45, 75], minor = True)
 ax.set_xticks([0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330, 360], minor = False)
 ax.set_xticks([15, 45, 75, 105, 135, 165, 195, 225, 255, 285, 315, 345], minor = True)
-plt.yticks(fontsize=20)
-plt.xticks(fontsize=20)
+plt.yticks(fontsize=13)
+plt.xticks(fontsize=13)
 
 
 #create color bar for phase angle
 mappable = ax.collections[0]
-cbar = plt.colorbar(mappable=mappable, shrink=0.75)
+# cbar = plt.colorbar(mappable=mappable, shrink=0.75)
+cbar = plt.colorbar(mappable=mappable)
 cbar.ax.tick_params(labelsize=20)
 cbar.set_label('M-band spectral radiance, GW/µm', labelpad=+3, fontsize=25)
 

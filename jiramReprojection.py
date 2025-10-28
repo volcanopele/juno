@@ -346,7 +346,7 @@ else:
 		lon = 360.0 - lon
 	lat = lat * spiceypy.dpr()
 	res = alt * 0.237767
-	if orbit == 41 or orbit == 43 or orbit == 47:
+	if orbit == 41 or orbit == 43 or orbit == 47 or orbit == 70:
 		magnify = 5
 	elif orbit == 49 or orbit == 51 or orbit == 53 or orbit == 55 or orbit >= 60:
 		magnify = 2
@@ -469,7 +469,7 @@ if flatfield:
 		isis.specpix(from_=mirrorCub, to_=nullCub, nullmin_=-1024, nullmax_=0.0000005)
 		isis.fx(f1_=nullCub, f2_=cal_flat_d, to_=darkCub, equation_="f1 * 1.018 * f1 ^ (-0.08) * f2 / f2")
 		isis.fx(f1_=nullCub, f2_=cal_flat_b, to_=brightCub, equation_="f1 * 0.9686 * f1 ^ (0.0891) * f2 / f2")
-	elif exposureTime == 0.001 and orbit >= 58:
+	elif exposureTime <= 0.001 and orbit >= 58:
 		isis.specpix(from_=mirrorCub, to_=nullCub, nullmin_=-1024, nullmax_=0.0000005)
 		isis.fx(f1_=nullCub, f2_=cal_flat_d, to_=darkCub, equation_="f1 * 1.01 * f1 ^ (-0.04) * f2 / f2")
 		isis.fx(f1_=nullCub, f2_=cal_flat_b, to_=brightCub, equation_="f1 * 0.99 * f1 ^ (0.04455) * f2 / f2")
